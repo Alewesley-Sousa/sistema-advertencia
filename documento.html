@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Especificação Técnica - Gerador de Ofícios Wialon</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 md:p-8 lg:p-12">
+
+    <div class="max-w-4xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <header class="border-b border-slate-800 pb-6">
+            <div class="flex items-center gap-3 text-brand-500 font-semibold text-sm tracking-wider uppercase mb-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-500"></span>
+                Documento de Arquitetura & Especificação
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                Gerador Automático de Ofícios de Advertência
+            </h1>
+            <p class="text-slate-400 mt-2 text-lg">
+                Integração com API Wialon para automação de processos operacionais e gestão de frotas.
+            </p>
+        </header>
+
+        <!-- 1. Visão Geral -->
+        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-sm">
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2 mb-3">
+                <span class="text-brand-500 font-mono">01.</span> Visão Geral do Projeto
+            </h2>
+            <p class="text-slate-300 leading-relaxed">
+                O objetivo do sistema é automatizar a emissão de <strong class="text-white">Ofícios de Advertência por Excesso de Velocidade</strong>. O sistema receberá notificações de infrações em tempo real da plataforma <span class="text-brand-500 font-medium">Wialon</span>, processará as regras de negócio, consultará dados complementares de veículos/condutores e gerará um documento PDF formatado de forma automática.
+            </p>
+        </section>
+
+        <!-- 2. Escopo -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Público-Alvo</h3>
+                <p class="text-slate-200 font-medium text-lg">Operadores da frota e setor de Recursos Humanos / Transporte da empresa.</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Modelo de Implantação</h3>
+                <p class="text-slate-200 font-medium text-lg">Aplicação local (Desktop/Executável <code class="text-brand-500 font-mono text-base">.exe</code>) com backend integrado e banco de dados embarcado.</p>
+            </div>
+        </section>
+
+        <!-- 3. Arquitetura e Stack Tecnológica -->
+        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 space-y-6">
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                <span class="text-brand-500 font-mono">03.</span> Arquitetura e Stack Tecnológica
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Frontend -->
+                <div class="bg-slate-900/80 rounded-lg p-5 border border-slate-700/40">
+                    <div class="text-brand-500 font-semibold mb-3 flex items-center justify-between">
+                        <span>Frontend</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 font-mono">UI</span>
+                    </div>
+                    <ul class="space-y-3 text-sm text-slate-300">
+                        <li><strong class="text-white">React + TypeScript:</strong> Construção da interface do usuário (painel de controle, logs e histórico).</li>
+                        <li><strong class="text-white">Tailwind CSS:</strong> Estilização ágil e responsiva das telas e dos templates de documentos.</li>
+                    </ul>
+                </div>
+
+                <!-- Backend -->
+                <div class="bg-slate-900/80 rounded-lg p-5 border border-slate-700/40">
+                    <div class="text-emerald-400 font-semibold mb-3 flex items-center justify-between">
+                        <span>Backend</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-400/10 text-emerald-400 font-mono">API</span>
+                    </div>
+                    <ul class="space-y-3 text-sm text-slate-300">
+                        <li><strong class="text-white">Node.js + TypeScript:</strong> Servidor HTTP para recepção de Webhooks da API do Wialon e gerenciamento das regras.</li>
+                        <li><strong class="text-white">SQLite:</strong> Banco de dados relacional leve (baseado em arquivo único local), ideal para desktop.</li>
+                        <li><strong class="text-white">Puppeteer / HTML-pdf:</strong> Renderização do template HTML/Tailwind em arquivos PDF oficiais.</li>
+                    </ul>
+                </div>
+
+                <!-- Desktop -->
+                <div class="bg-slate-900/80 rounded-lg p-5 border border-slate-700/40">
+                    <div class="text-purple-400 font-semibold mb-3 flex items-center justify-between">
+                        <span>Empacotamento</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-purple-400/10 text-purple-400 font-mono">EXE</span>
+                    </div>
+                    <ul class="space-y-3 text-sm text-slate-300">
+                        <li><strong class="text-white">Tauri (ou Electron):</strong> Para empacotar o backend Node.js e a interface React em um único arquivo executável (<code class="font-mono text-purple-300">.exe</code>).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Fluxo de Funcionamento -->
+        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2 mb-4">
+                <span class="text-brand-500 font-mono">04.</span> Fluxo de Funcionamento (Pipelines)
+            </h2>
+            <div class="bg-slate-950 rounded-lg p-5 border border-slate-800 font-mono text-xs md:text-sm text-slate-300 overflow-x-auto leading-relaxed">
+<pre class="text-brand-400">
+[ Wialon (Nuvem) ] 
+       │
+       ▼ (Webhook HTTP POST)
+[ Servidor Node.js Local ] ──► [ Validação & Regra de Negócio ]
+                                            │
+                                            ▼
+                               [ Consulta API Wialon ] (Dados do Condutor/Veículo)
+                                            │
+                                            ▼
+                               [ Preenchimento do Template HTML ]
+                                            │
+                                            ▼
+                               [ Geração do PDF (Puppeteer) ]
+                                            │
+                                            ▼
+                               [ Armazenamento no SQLite & Pasta Local ]
+</pre>
+            </div>
+        </section>
+
+        <!-- 5. Requisitos Funcionais -->
+        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 space-y-4">
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2 mb-2">
+                <span class="text-brand-500 font-mono">05.</span> Requisitos Funcionais
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/40">
+                    <h3 class="text-white font-medium mb-1 text-base flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                        Recepção de Alertas
+                    </h3>
+                    <p class="text-slate-400 text-sm">Expor um endpoint HTTP para receber os alertas de velocidade enviados pelo Wialon.</p>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/40">
+                    <h3 class="text-white font-medium mb-1 text-base flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                        Processamento & Filtros
+                    </h3>
+                    <p class="text-slate-400 text-sm">Identificar veículo, grupo (ex: grupo Force), velocidade registrada e limite da via. Aplicar regras de tolerância (ex: excesso acima de X% ou X km/h).</p>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/40 md:col-span-2">
+                    <h3 class="text-white font-medium mb-2 text-base flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                        Geração Automática do Documento
+                    </h3>
+                    <p class="text-slate-300 text-sm mb-3">Preencher o modelo do Ofício de Advertência e salvar o PDF na pasta configurada (<code class="text-brand-400 font-mono">/documentos/oficios/</code>):</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono text-slate-300">
+                        <div class="bg-slate-800 p-2 rounded text-center">Condutor / Matrícula</div>
+                        <div class="bg-slate-800 p-2 rounded text-center">Placa & Modelo</div>
+                        <div class="bg-slate-800 p-2 rounded text-center">Data, Hora & Local</div>
+                        <div class="bg-slate-800 p-2 rounded text-center">Velocidade vs Limite</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700/40 md:col-span-2">
+                    <h3 class="text-white font-medium mb-1 text-base flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                        Painel de Gestão (Dashboard React)
+                    </h3>
+                    <p class="text-slate-400 text-sm">Tabela com histórico de infrações, visualizador/download de 2ª via do PDF e tela de configurações (caminhos, tokens da API Wialon e tolerâncias).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Próximos Passos -->
+        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2 mb-4">
+                <span class="text-brand-500 font-mono">06.</span> Próximos Passos
+            </h2>
+            <ol class="space-y-3 text-sm text-slate-300 list-decimal list-inside">
+                <li class="pl-2"><strong class="text-white">Definir campos do Webhook:</strong> Mapear dados enviados diretamente pelo Wialon e consultas secundárias necessárias.</li>
+                <li class="pl-2"><strong class="text-white">Criar Modelo do Ofício:</strong> Desenvolver o layout/template HTML/Tailwind oficial da advertência para conversão em PDF.</li>
+                <li class="pl-2"><strong class="text-white">Estruturar Projeto Inicial:</strong> Setup da arquitetura base Node.js/TypeScript com SQLite e React.</li>
+            </ol>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-slate-500 text-xs py-4 border-t border-slate-800">
+            Documento de Especificação Técnica • Sistema de Automação de Frotas
+        </footer>
+
+    </div>
+
+</body>
+</html>
