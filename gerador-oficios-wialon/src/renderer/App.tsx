@@ -1,48 +1,108 @@
-import { useState } from 'react'
-import { StatusBadge } from '@/renderer/components/StatusBadge'
-import type { Infracao } from '@/shared/types'
+// App.tsx
+import { useEffect, useState } from 'react'
+import { 
+  listarInfracoes, 
+  listarConfiguracoes, 
+  enviarEmailInfracao, 
+  type Infracao, 
+  type Configuracao 
+} from './services/api'
+import { Header } from './components/Header'
+import { PdfModal } from './components/PdfModal'
+import { InfracoesPage } from './pages/InfracoesPage'
+import { ConfiguracoesPage } from './pages/ConfiguracoesPage'
 
-function App() {
-  const [count, setCount] = useState(0)
+export function App() {
+  const [abaAtiva, setAbaAtiva] = useState<'infracoes' | 'configuracoes'>('infracoes')
+  const [infracoes, setInfracoes] = useState<Infracao[]>([])
+  const [configs, setConfigs] = useState<Configuracao[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  
+  // Estados para feedbacks das ações nas linhas da tabela
+  const [enviandoEmailId, setEnviandoEmailId] = useState<number | null>(null)
+  const [loadingPdfId, setLoadingPdfId] = useState<number | null>(null)
 
-  // Dados mockados utilizando a interface compartilhada
-  const infracaoTeste: Infracao = {
-    id: 1,
-    placa: 'HWU-9900',
-    velocidade: 88,
+  const [pdfModal, setPdfModal] = useState<{ url: string | null; title: string }>({
+    url: null,
+    title: '',
+  })
+
+  const carregarInfracoes = async () => {
+    try {
+      setLoading(true)
+      const dados = await listarInfracoes()
+      setInfracoes(dados)
+    } catch (error) {
+      console.error('Erro ao carregar infrações:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const carregarConfiguracoes = async () => {
+    try {
+      const dados = await listarConfiguracoes()
+      setConfigs(dados)
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error)
+    }
+  }
+
+  useEffect(() => {
+    carregarInfracoes()
+    carregarConfiguracoes()
+    const interval = setInterval(carregarInfracoes, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleAbrirPdf = (id: number, placa: string, condutor: string) => {
+    setPdfModal({
+      url: `http://localhost:3333/api/infracoes/${id}/pdf`,
+      title: `Ofício - Placa: ${placa} (${condutor})`,
+    })
+  }
+
+  const handleEnviarEmail = async (id: number) => {
+    try {
+      setEnviandoEmailId(id)
+      await enviarEmailInfracao(id)
+      await carregarInfracoes()
+    } catch (error) {
+      console.error('Erro ao enviar e-mail:', error)
+    } finally {
+      setEnviandoEmailId(null)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-8 flex flex-col items-center justify-center space-y-6">
-      <div className="flex items-center gap-3 text-brand-500 font-semibold text-sm tracking-wider uppercase">
-        <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
-        Tailwind v4 Test Zone
-      </div>
+    <div className="min-h-screen bg-slate-50/50 text-slate-800 flex flex-col font-sans relative antialiased">
+      <Header 
+        abaAtiva={abaAtiva} 
+        setAbaAtiva={setAbaAtiva} 
+        onRefresh={abaAtiva === 'infracoes' ? carregarInfracoes : carregarConfiguracoes} 
+        loading={loading} 
+      />
 
-      <h1 className="text-4xl font-bold tracking-tight text-white">
-        Gerador de Ofícios Wialon
-      </h1>
+      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
+        {abaAtiva === 'infracoes' ? (
+          <InfracoesPage 
+            infracoesLocais={infracoes} 
+            loadingPdfId={loadingPdfId}
+            enviandoEmailId={enviandoEmailId}
+            onAbrirPdf={handleAbrirPdf} 
+            onEnviarEmail={handleEnviarEmail}
+            onAtualizarStatus={carregarInfracoes}
+          />
+        ) : (
+          <ConfiguracoesPage configs={configs} carregarConfiguracoes={carregarConfiguracoes} />
+        )}
+      </main>
 
-      <p className="text-slate-400 max-w-md text-center">
-        Se este card estiver estilizado em escuro com detalhes em azul customizado, a configuração do Tailwind v4 funcionou.
-      </p>
-
-      {/* Teste do Path Alias importando o componente */}
-      <StatusBadge infracao={infracaoTeste} />
-
-      <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 flex flex-col items-center space-y-4 shadow-lg">
-        <span className="font-mono text-brand-500 text-xs px-3 py-1 bg-brand-500/10 rounded-full border border-brand-500/20">
-          FONTE MONO: JetBrains Mono
-        </span>
-
-        <button
-          type="button"
-          onClick={() => setCount((c) => c + 1)}
-          className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 active:bg-brand-900 text-white font-medium rounded-lg transition cursor-pointer shadow-md"
-        >
-          Contador: <span className="font-mono font-bold ml-1">{count}</span>
-        </button>
-      </div>
+      <PdfModal 
+        url={pdfModal.url} 
+        title={pdfModal.title} 
+        onClose={() => setPdfModal({ url: null, title: '' })} 
+      />
     </div>
   )
 }

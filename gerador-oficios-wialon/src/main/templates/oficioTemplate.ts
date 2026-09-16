@@ -9,6 +9,10 @@ export interface OficioTemplateData {
 }
 
 export function gerarHtmlOficio(dados: OficioTemplateData): string {
+  // Calcula a diferença de velocidade excedida
+  const excesso = Math.round(dados.velocidade - dados.limite_via)
+  const anoAtual = new Date().getFullYear()
+
   return `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -38,7 +42,7 @@ export function gerarHtmlOficio(dados: OficioTemplateData): string {
     </div>
     <div class="text-right">
       <span class="text-xs font-semibold bg-gray-100 text-gray-800 px-3 py-1 rounded border border-gray-300">
-        OFÍCIO Nº ${String(dados.id || 1).padStart(4, '0')}/2026
+        OFÍCIO Nº ${String(dados.id || 1).padStart(4, '0')}/${anoAtual}
       </span>
     </div>
   </header>
@@ -66,7 +70,7 @@ export function gerarHtmlOficio(dados: OficioTemplateData): string {
       O presente documento tem por finalidade formalizar a aplicação de <strong>ADVERTÊNCIA ESCRITA</strong>, em conformidade com as diretrizes de segurança viária da empresa e o artigo 474 da Consolidação das Leis do Trabalho (CLT), em decorrência de infração cometida na condução de veículo corporativo.
     </p>
     <p>
-      Conforme os registros telemáticos obtidos através da plataforma de rastreamento em <strong>${dados.data_hora}</strong>, constatou-se que o veículo sob sua responsabilidade operava a uma velocidade de <strong>${dados.velocidade} km/h</strong> em uma via cujo limite regulamentado é de <strong>${dados.limite_via} km/h</strong>.
+      Conforme os registros telemáticos obtidos através da plataforma de rastreamento em <strong>${dados.data_hora}</strong>, constatou-se que o veículo sob sua responsabilidade operava a uma velocidade de <strong>${dados.velocidade} km/h</strong> em uma via cujo limite regulamentado é de <strong>${dados.limite_via} km/h</strong> (ultrapassando o limite em <strong>${excesso > 0 ? excesso : 0} km/h</strong>).
     </p>
     <p>
       <strong>Local da Ocorrência:</strong> ${dados.endereco}

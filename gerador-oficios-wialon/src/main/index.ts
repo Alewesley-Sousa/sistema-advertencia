@@ -1,7 +1,9 @@
 import express from 'express'
 import cors from 'cors'
-import { initDatabase, db } from './database/db'
-import { handleWialonWebhook, testarWebhookMock } from './controllers/webhookController'
+import { initDatabase } from './database/init'
+import { consolidarInfracoesPendentes } from './services/consolidaçãoService'
+import { testarWebhookMock } from './mocks/webhookMock'
+import { routes } from './routes'
 
 const app = express()
 const PORT = 3333
@@ -9,31 +11,23 @@ const PORT = 3333
 app.use(cors())
 app.use(express.json())
 
-// Inicializar banco de dados (com ponto e vírgula obrigatório aqui)
-initDatabase();
+// Inicializa banco de dados
+initDatabase()
 
-// Executa o mock de forma segura
-testarWebhookMock().catch(console.error);
+// Executa o mock em ambiente de teste (opcional)
+testarWebhookMock().catch(console.error)
 
-// Rota de Healthcheck
+// Healthcheck
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() })
 })
 
-// Endpoint do Webhook Wialon (Real)
-app.post('/api/webhooks/wialon', handleWialonWebhook)
+// Registra todos os módulos de rotas sob o prefixo /api
+app.use('/api', routes)
 
-// Rota de teste para listar infrações do SQLite
-app.get('/api/infracoes', (_req, res) => {
-  try {
-    const stmt = db.prepare('SELECT * FROM infracoes ORDER BY id DESC')
-    const infracoes = stmt.all()
-    res.json(infracoes)
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar infrações.' })
-  }
-})
-
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[Backend] Servidor rodando em http://localhost:${PORT}`)
+  
+  // Consolida infrações de dias anteriores automaticamente ao iniciar a aplicação
+  await consolidarInfracoesPendentes().catch(console.error)
 })
