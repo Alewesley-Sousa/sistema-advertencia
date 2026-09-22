@@ -104,13 +104,14 @@ export async function processarLoteDetran(
  * Aqui remontamos os dois num único objeto.
  */
 export async function listarHistoricoDetran(
-  filtros?: BaseFiltros
+  filtros?: BaseFiltros & { status?: string }
 ): Promise<HistoricoDetranResult> {
   const response = await api.get<InfracaoDetran[]>('/detran/historico', {
     params: {
       page: filtros?.pagina,
       limit: filtros?.limite,
       busca: filtros?.busca,
+      status: filtros?.status,   // ← NOVO
     },
   })
 

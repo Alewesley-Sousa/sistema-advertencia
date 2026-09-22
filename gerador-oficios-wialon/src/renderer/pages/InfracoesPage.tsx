@@ -127,11 +127,10 @@ export function InfracoesPage({
         <button
           type="button"
           onClick={() => setAbaAtiva('OPERACIONAL')}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition cursor-pointer ${
-            abaAtiva === 'OPERACIONAL'
+          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition cursor-pointer ${abaAtiva === 'OPERACIONAL'
               ? 'border-cyan-600 text-cyan-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           <FileText className="w-4 h-4" />
           Operacional ({infracoesSeguras.length})
@@ -140,11 +139,10 @@ export function InfracoesPage({
         <button
           type="button"
           onClick={() => setAbaAtiva('HISTORICO')}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition cursor-pointer ${
-            abaAtiva === 'HISTORICO'
+          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition cursor-pointer ${abaAtiva === 'HISTORICO'
               ? 'border-cyan-600 text-cyan-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           <History className="w-4 h-4" />
           Histórico Geral
@@ -210,11 +208,11 @@ export function InfracoesPage({
             enviandoEmailId={enviandoEmailId}
           />
 
-          {historicoData?.pagination && (
+          {historicoData?.meta && (
             <Pagination
-              page={historicoData.pagination.page ?? 1}
-              totalPages={historicoData.pagination.totalPages ?? 1}
-              total={historicoData.pagination.total ?? 0}
+              page={historicoData.meta.page ?? 1}
+              totalPages={historicoData.meta.totalPages ?? 1}
+              total={historicoData.meta.totalItems ?? 0}
               onPageChange={setPaginaHistorico}
             />
           )}

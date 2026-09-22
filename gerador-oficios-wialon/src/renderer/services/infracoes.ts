@@ -33,20 +33,55 @@ export interface PaginationMeta {
   hasPrevPage: boolean
 }
 
+export interface InfracoesListaResult {
+  data: Infracao[]
+  meta: PaginationMeta
+}
+
+/* ==========================================================================
+ * OPERACIONAL
+ * ========================================================================*/
+
+export interface ListarOperacionalParams extends BaseFiltros {
+  /** termo de busca (condutor, placa ou endereço) */
+  busca?: string
+}
+
+export async function listarInfracoesOperacional(
+  filtros: ListarOperacionalParams = {}
+): Promise<InfracoesListaResult> {
+  const response = await api.get<Infracao[]>('/infracoes', {
+    params: {
+      page: filtros.pagina,
+      limit: filtros.limite,
+      busca: filtros.busca,
+    },
+  })
+
+  const meta = (response as any).meta as PaginationMeta | undefined
+
+  return {
+    data: response.data,
+    meta: meta ?? {
+      page: 1,
+      limit: filtros.limite ?? 10,
+      totalItems: response.data.length,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+    },
+  }
+}
+
+/* ==========================================================================
+ * HISTÓRICO
+ * ========================================================================*/
+
 export interface HistoricoInfracoesResult {
   data: Infracao[]
   meta: PaginationMeta
 }
 
-/**
- * Histórico paginado de infrações.
- *
- * O interceptor de resposta do `api.ts` separa o envelope em:
- *   - `response.data` → array puro
- *   - `response.meta` → objeto de paginação
- *
- * Aqui remontamos os dois num único objeto pra facilitar o consumo nos hooks.
- */
 export async function buscarHistoricoInfracoes(
   filtros: BaseFiltros = {}
 ): Promise<HistoricoInfracoesResult> {
@@ -75,10 +110,9 @@ export async function buscarHistoricoInfracoes(
   }
 }
 
-export async function listarInfracoes(): Promise<Infracao[]> {
-  const response = await api.get<Infracao[]>('/infracoes')
-  return response.data
-}
+/* ==========================================================================
+ * AÇÕES
+ * ========================================================================*/
 
 export async function gerarPdfInfracao(
   id: number

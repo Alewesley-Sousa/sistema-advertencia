@@ -24,22 +24,21 @@ export const sendResponse = {
     })
   },
 
-  paginate: <T>(res: Response, data: T[], page: number, limit: number, totalItems: number) => {
-    const totalPages = Math.ceil(totalItems / limit) || 1
-
-    return res.status(200).json({
-      success: true,
-      data,
-      meta: {
-        page,
-        limit,
-        totalItems,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      }
-    })
-  },
+paginate: <T>(res: Response, data: T[], page: number, limit: number, totalItems: number) => {
+  const totalPages = Math.ceil(totalItems / limit) || 1
+  return res.status(200).json({
+    success: true,
+    data,
+    meta: {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  })
+},
 
   error: (
     res: Response, 

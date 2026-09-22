@@ -1,18 +1,24 @@
-import puppeteer, { Browser, Page } from 'puppeteer'
+import puppeteer, {
+  Browser,
+  BrowserContext,
+  Page,
+} from 'puppeteer'
 import path from 'node:path'
 import fs from 'node:fs'
 
 /* ============================================================================
  * TIPOS
- * ==========================================================================*/
+ * ========================================================================== */
 
 export interface DadosConsultaDetran {
   placa: string
   chassi: string
   /**
-   * Chaves "AIT|DATA_INFRACAO" que já foram baixadas com sucesso pra essa placa.
-   * Multas que casarem com essas chaves são marcadas como `jaBaixada: true`
-   * e NÃO são baixadas de novo.
+   * Chaves "AIT|DATA_INFRACAO" já baixadas com sucesso para essa placa.
+   *
+   * Se a multa estiver nesse Set:
+   * - jaBaixada = true
+   * - o download é pulado
    */
   aitJaBaixados?: Set<string>
 }
@@ -24,11 +30,17 @@ export interface MultaDetran {
   dataVencimento: string
   valor: string
   valorPagar: string
-  /** Preenchido após baixar o boleto individual dessa multa */
+  /**
+   * Preenchido quando o PDF é salvo com sucesso.
+   */
   caminhoPdf?: string
-  /** Preenchido quando o DETRAN recusa emitir o boleto (ex: vencimento em dia não útil) */
+  /**
+   * Preenchido quando a emissão/download falha.
+   */
   erroEmissao?: string
-  /** true = já tinha sido baixada antes, pulamos o download */
+  /**
+   * true = a multa já tinha sido baixada anteriormente.
+   */
   jaBaixada?: boolean
 }
 
@@ -44,644 +56,2599 @@ export interface ResultadoConsultaDetran {
 }
 
 /**
- * Chave natural da multa: "AIT|DATA_INFRACAO".
+ * Chave natural da multa.
  *
- * Usada em dois lugares:
- *   - No scraper: pra pular boletos já baixados
- *   - No repository: pra montar o Set de chaves já baixadas
- *
- * Fonte única da verdade — se um dia a regra mudar, muda aqui só.
+ * Fonte única da verdade para scraper/repository.
  */
-export function chaveMulta(ait: string, dataInfracao: string): string {
+export function chaveMulta(
+  ait: string,
+  dataInfracao: string
+): string {
   return `${(ait || '').trim()}|${(dataInfracao || '').trim()}`
 }
 
 /* ============================================================================
  * CONFIGURAÇÃO
- * ==========================================================================*/
+ * ========================================================================== */
 
 const TAG = '[DETRAN Scraper]'
 
 const CONFIG = {
   urls: {
-    central: 'https://sistemas.detran.ce.gov.br/central/',
+    central:
+      'https://sistemas.detran.ce.gov.br/central/',
   },
+
   seletores: {
-    linkTaxasMultas: '#taxas_multas, a[data-title="Taxas / Multas"]',
-    inputPlaca: '#veiculo_placa',
-    inputChassi: '#veiculo_renavam_chassi',
-    btnConfirmar: '#submit-veiculo',
+    linkTaxasMultas:
+      '#taxas_multas, a[data-title="Taxas / Multas"]',
+
+    inputPlaca:
+      '#veiculo_placa',
+
+    inputChassi:
+      '#veiculo_renavam_chassi',
+
+    btnConfirmar:
+      '#submit-veiculo',
+
     alertaMultas:
       '.alert.multas.links-veiculo-danger, .alert.multas.links-veiculo',
-    modalMultas: '#outros-servicos-modal',
-    tabelaMultas: '#emissao-multas',
-    checkboxMulta: 'input.multas',
-    btnVerOpcoes: '#btn-emitir-extrato',
-    btnBaixarBoleto: '#btn-exibir-extrato',
-    /** Alerta de erro do DETRAN dentro do modal (ex: "A data de validade deve ser um dia útil") */
-    alertaErroDETRAN: '.multas-alert',
+
+    resultadoVeiculo:
+      'h3',
+
+    modalMultas:
+      '#outros-servicos-modal',
+
+    tabelaMultas:
+      '#emissao-multas',
+
+    checkboxMulta:
+      'input.multas',
+
+    btnVerOpcoes:
+      '#btn-emitir-extrato',
+
+    btnBaixarBoleto:
+      '#btn-exibir-extrato',
+
+    btnVoltarExtrato:
+      '#btn-voltar-extrato',
+
+    alertaErroDETRAN:
+      '.multas-alert',
   },
+
   timeouts: {
     navegacao: 60_000,
     padrao: 30_000,
     seletor: 15_000,
     novaAba: 10_000,
+    selecao: 5_000,
+    emissao: 15_000,
+    resultadoConsulta: 5_000,
   },
 } as const
 
 /* ============================================================================
- * LOG
- * ==========================================================================*/
+ * BROWSER COMPARTILHADO
+ * ========================================================================== */
 
-function log(...args: any[]) {
-  console.log(TAG, new Date().toISOString(), ...args)
+let browserDetran: Browser | null = null
+let browserDetranPromise: Promise<Browser> | null = null
+
+/* ============================================================================
+ * LOG
+ * ========================================================================== */
+
+function log(...args: unknown[]) {
+  console.log(
+    TAG,
+    new Date().toISOString(),
+    ...args
+  )
 }
-function logErr(...args: any[]) {
-  console.error(TAG, new Date().toISOString(), ...args)
+
+function logErr(...args: unknown[]) {
+  console.error(
+    TAG,
+    new Date().toISOString(),
+    ...args
+  )
 }
 
 /* ============================================================================
- * HELPERS DE INFRA
- * ==========================================================================*/
+ * MEDIÇÃO
+ * ========================================================================== */
 
-function getChromeExecutablePath(): string | undefined {
+async function medirEtapa<T>(
+  nome: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  const inicio = performance.now()
+
+  try {
+    return await fn()
+  } finally {
+    const tempo =
+      performance.now() - inicio
+
+    log(
+      `${nome}: ${tempo.toFixed(0)}ms`
+    )
+  }
+}
+
+/* ============================================================================
+ * CHROME
+ * ========================================================================== */
+
+function getChromeExecutablePath():
+  | string
+  | undefined {
   const possiblePaths = [
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(
+      process.env.LOCALAPPDATA || '',
+      'Google',
+      'Chrome',
+      'Application',
+      'chrome.exe'
+    ),
   ]
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      log('Chrome encontrado em:', p)
-      return p
+
+  for (const chromePath of possiblePaths) {
+    if (fs.existsSync(chromePath)) {
+      log(
+        'Chrome encontrado em:',
+        chromePath
+      )
+      return chromePath
     }
   }
-  logErr('Chrome NÃO encontrado. Usando Chromium do Puppeteer.')
+
+  logErr(
+    'Chrome NÃO encontrado. Usando Chromium do Puppeteer.'
+  )
+
   return undefined
 }
 
-async function salvarDebug(page: Page, contexto: string) {
+/* ============================================================================
+ * BROWSER GLOBAL
+ * ========================================================================== */
+
+async function obterBrowserDetran(): Promise<Browser> {
+  if (browserDetran) {
+    return browserDetran
+  }
+
+  if (browserDetranPromise) {
+    return browserDetranPromise
+  }
+
+  browserDetranPromise =
+    (async () => {
+      log(
+        'Iniciando Chromium compartilhado...'
+      )
+
+      const browser =
+        await puppeteer.launch({
+          headless: true,
+          executablePath:
+            getChromeExecutablePath(),
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+          ],
+        })
+
+      browserDetran = browser
+
+      browser.once(
+        'disconnected',
+        () => {
+          logErr(
+            'Browser DETRAN desconectado.'
+          )
+
+          if (
+            browserDetran ===
+            browser
+          ) {
+            browserDetran = null
+          }
+        }
+      )
+
+      log(
+        'Browser OK. Versão:',
+        await browser.version()
+      )
+
+      return browser
+    })()
+
   try {
-    const dir = path.resolve(process.cwd(), 'storage', 'debug', 'detran')
-    fs.mkdirSync(dir, { recursive: true })
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const base = `${stamp}_${contexto}`
-
-    fs.writeFileSync(path.join(dir, `${base}.html`), await page.content().catch(() => ''))
-    await page.screenshot({ path: path.join(dir, `${base}.png`), fullPage: true }).catch(() => {})
-
-    logErr(`Debug salvo em storage/debug/detran/${base}.{html,png}`)
-    logErr(`  URL: ${page.url()}`)
-  } catch (e) {
-    logErr('Falha ao salvar debug:', e)
+    return await browserDetranPromise
+  } finally {
+    browserDetranPromise = null
   }
 }
 
-async function limparEDigitar(page: Page, seletor: string, valor: string) {
-  await page.click(seletor).catch(() => null)
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel) as HTMLInputElement | null
-    if (el) {
-      el.value = ''
-      el.dispatchEvent(new Event('input', { bubbles: true }))
-    }
-  }, seletor)
-  await page.type(seletor, valor)
-}
+/**
+ * Feche o Chromium quando a aplicação inteira for encerrada.
+ */
+export async function fecharBrowserDetran(): Promise<void> {
+  const browser =
+    browserDetran
 
-function esperarNovaAba(browser: Browser, timeoutMs: number): Promise<Page | null> {
-  return new Promise((resolve) => {
-    const handler = async (target: any) => {
-      if (target.type() === 'page') {
-        const p = await target.page()
-        resolve(p)
-      }
-    }
-    browser.once('targetcreated', handler)
-    setTimeout(() => resolve(null), timeoutMs)
-  })
-}
+  browserDetran = null
 
-function formatarDataParaNome(dataInfracao: string | undefined): string {
-  const trimmed = (dataInfracao || '').trim()
-  if (!trimmed) return 'sem-data'
+  if (!browser) {
+    return
+  }
 
-  const match = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
-  if (match) return `${match[1]}-${match[2]}-${match[3]}`
+  try {
+    log(
+      'Fechando Chromium compartilhado...'
+    )
 
-  return trimmed.replace(/[^a-zA-Z0-9]/g, '-')
-}
-
-function gerarNomeArquivoBoleto(placa: string, multa: MultaDetran): string {
-  const placaUpper = placa.toUpperCase().trim()
-  const dataFormatada = formatarDataParaNome(multa.dataInfracao)
-  return `MULTA-${placaUpper}-${dataFormatada}.pdf`
+    await browser.close()
+  } catch (error) {
+    logErr(
+      'Erro ao fechar Chromium:',
+      error instanceof Error
+        ? error.message
+        : String(error)
+    )
+  }
 }
 
 /* ============================================================================
- * HELPERS DE DOMÍNIO — PASSO INICIAL
- * ==========================================================================*/
+ * CONFIGURAÇÃO DA PÁGINA
+ * ========================================================================== */
 
-async function abrirFormularioTaxasMultas(page: Page): Promise<void> {
-  log('Abrindo Taxas / Multas...')
-  await page.waitForSelector(CONFIG.seletores.linkTaxasMultas, {
-    timeout: CONFIG.timeouts.seletor,
-  })
-  await page.click(CONFIG.seletores.linkTaxasMultas)
+/**
+ * Não bloqueamos imagens, SVGs, CSS ou JS.
+ *
+ * Os testes anteriores mostraram que bloquear assets causava
+ * vários net::ERR_FAILED no próprio DETRAN.
+ */
+async function configurarPagina(
+  page: Page
+): Promise<void> {
+  page.setDefaultNavigationTimeout(
+    CONFIG.timeouts.navegacao
+  )
 
-  await page.waitForSelector(CONFIG.seletores.inputPlaca, {
-    timeout: CONFIG.timeouts.seletor,
-    visible: true,
-  })
-  log('Formulário pronto.')
+  page.setDefaultTimeout(
+    CONFIG.timeouts.padrao
+  )
+
+  page.on(
+    'requestfailed',
+    (request) => {
+      logErr(
+        `Requisição falhou: ${request.method()} ${request.url()} — ${
+          request.failure()?.errorText ||
+          'erro desconhecido'
+        }`
+      )
+    }
+  )
+
+  page.on(
+    'pageerror',
+    (error: unknown) => {
+      logErr(
+        'Erro de JS na página:',
+        error instanceof Error
+          ? error.message
+          : String(error)
+      )
+    }
+  )
 }
 
-async function submeterConsulta(page: Page, placa: string, chassi: string): Promise<void> {
-  log('Preenchendo placa e chassi...')
-  await limparEDigitar(page, CONFIG.seletores.inputPlaca, placa)
-  await limparEDigitar(page, CONFIG.seletores.inputChassi, chassi)
+/* ============================================================================
+ * DEBUG
+ * ========================================================================== */
 
-  log('Clicando em CONFIRMAR...')
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.timeouts.padrao }).catch(() => null),
-    page.click(CONFIG.seletores.btnConfirmar).catch(() => null),
-  ])
-  log('Pós-clique. URL:', page.url())
+function sanitizarNomeArquivo(
+  valor: string
+): string {
+  return valor
+    .trim()
+    .replace(
+      /[<>:"/\\|?*\x00-\x1F]/g,
+      '_'
+    )
+    .replace(
+      /\s+/g,
+      '_'
+    )
 }
 
-async function detectarMultas(page: Page): Promise<{ qtd: number; texto: string } | null> {
-  await page
-    .waitForSelector(CONFIG.seletores.alertaMultas, { timeout: 5000, visible: true })
-    .catch(() => null)
+async function salvarDebug(
+  page: Page,
+  contexto: string
+): Promise<void> {
+  try {
+    const dir =
+      path.resolve(
+        process.cwd(),
+        'storage',
+        'debug',
+        'detran'
+      )
 
-  const texto = await page.evaluate((sel) => {
-    const el = document.querySelector(sel)
-    return el ? (el as HTMLElement).innerText.trim().replace(/\s+/g, ' ') : null
-  }, CONFIG.seletores.alertaMultas)
-
-  if (!texto) return null
-
-  const match = texto.match(/(\d+)\s+multa/i)
-  const qtd = match ? Number(match[1]) : 0
-
-  return { qtd, texto }
-}
-
-async function reabrirModalMultas(page: Page): Promise<void> {
-  log('Reabrindo modal de multas (estado limpo)...')
-
-  const modalAberto = await page.evaluate((sel) => {
-    const modal = document.querySelector(sel) as HTMLElement | null
-    if (!modal) return false
-    return window.getComputedStyle(modal).display !== 'none'
-  }, CONFIG.seletores.modalMultas)
-
-  if (modalAberto) {
-    await page.evaluate((sel) => {
-      const w = window as any
-      if (w.$ && typeof w.$(sel).modal === 'function') {
-        try {
-          w.$(sel).modal('hide')
-        } catch {
-          /* ignore */
-        }
+    fs.mkdirSync(
+      dir,
+      {
+        recursive: true,
       }
-      const modal = document.querySelector(sel) as HTMLElement | null
-      if (modal) {
-        modal.style.display = 'none'
-        modal.classList.remove('in')
-      }
-      document.body.classList.remove('modal-open')
-      document.querySelectorAll('.modal-backdrop').forEach((b) => b.remove())
-    }, CONFIG.seletores.modalMultas)
+    )
 
-    await new Promise((r) => setTimeout(r, 500))
+    const stamp =
+      new Date()
+        .toISOString()
+        .replace(
+          /[:.]/g,
+          '-'
+        )
+
+    const base =
+      `${stamp}_${sanitizarNomeArquivo(contexto)}`
+
+    fs.writeFileSync(
+      path.join(
+        dir,
+        `${base}.html`
+      ),
+      await page
+        .content()
+        .catch(() => '')
+    )
+
+    await page
+      .screenshot({
+        path: path.join(
+          dir,
+          `${base}.png`
+        ),
+        fullPage: true,
+      })
+      .catch(() => {})
+
+    logErr(
+      `Debug salvo em storage/debug/detran/${base}.{html,png}`
+    )
+
+    logErr(
+      `URL: ${page.url()}`
+    )
+  } catch (error) {
+    logErr(
+      'Falha ao salvar debug:',
+      error instanceof Error
+        ? error.message
+        : String(error)
+    )
+  }
+}
+
+/* ============================================================================
+ * INPUT
+ * ========================================================================== */
+
+async function limparEDigitar(
+  page: Page,
+  seletor: string,
+  valor: string
+): Promise<void> {
+  await page.click(seletor)
+
+  await page.evaluate(
+    (sel) => {
+      const elemento =
+        document.querySelector(
+          sel
+        ) as HTMLInputElement | null
+
+      if (!elemento) {
+        return
+      }
+
+      elemento.value = ''
+
+      elemento.dispatchEvent(
+        new Event(
+          'input',
+          {
+            bubbles: true,
+          }
+        )
+      )
+
+      elemento.dispatchEvent(
+        new Event(
+          'change',
+          {
+            bubbles: true,
+          }
+        )
+      )
+    },
+    seletor
+  )
+
+  await page.type(
+    seletor,
+    valor
+  )
+}
+
+/* ============================================================================
+ * NOMES DE ARQUIVO
+ * ========================================================================== */
+
+function formatarDataParaNome(
+  dataInfracao:
+    | string
+    | undefined
+): string {
+  const data =
+    (
+      dataInfracao ||
+      ''
+    ).trim()
+
+  if (!data) {
+    return 'sem-data'
   }
 
-  await page.click(CONFIG.seletores.alertaMultas)
+  const match =
+    data.match(
+      /^(\d{2})\/(\d{2})\/(\d{4})$/
+    )
+
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`
+  }
+
+  return data.replace(
+    /[^a-zA-Z0-9]/g,
+    '-'
+  )
+}
+
+function gerarNomeArquivoBoleto(
+  placa: string,
+  multa: MultaDetran
+): string {
+  const placaNormalizada =
+    sanitizarNomeArquivo(
+      placa
+        .toUpperCase()
+        .trim()
+    )
+
+  const ait =
+    sanitizarNomeArquivo(
+      multa.ait
+    )
+
+  const data =
+    formatarDataParaNome(
+      multa.dataInfracao
+    )
+
+  return (
+    `MULTA-${placaNormalizada}-${ait}-${data}.pdf`
+  )
+}
+
+/* ============================================================================
+ * FLUXO INICIAL
+ * ========================================================================== */
+
+async function abrirFormularioTaxasMultas(
+  page: Page
+): Promise<void> {
+  log(
+    'Abrindo Taxas / Multas...'
+  )
+
+  await page.waitForSelector(
+    CONFIG.seletores.linkTaxasMultas,
+    {
+      timeout:
+        CONFIG.timeouts.seletor,
+      visible: true,
+    }
+  )
+
+  await page.click(
+    CONFIG.seletores.linkTaxasMultas
+  )
+
+  await page.waitForSelector(
+    CONFIG.seletores.inputPlaca,
+    {
+      timeout:
+        CONFIG.timeouts.seletor,
+      visible: true,
+    }
+  )
+
+  log(
+    'Formulário pronto.'
+  )
+}
+
+/* ============================================================================
+ * CONSULTA DO VEÍCULO
+ * ========================================================================== */
+
+async function submeterConsulta(
+  page: Page,
+  placa: string,
+  chassi: string
+): Promise<void> {
+  log(
+    'Preenchendo placa e chassi...'
+  )
+
+  await limparEDigitar(
+    page,
+    CONFIG.seletores.inputPlaca,
+    placa
+  )
+
+  await limparEDigitar(
+    page,
+    CONFIG.seletores.inputChassi,
+    chassi
+  )
+
+  log(
+    'Clicando em CONFIRMAR...'
+  )
+
+  await Promise.all([
+    page
+      .waitForNavigation({
+        waitUntil:
+          'domcontentloaded',
+        timeout:
+          CONFIG.timeouts.padrao,
+      })
+      .catch(() => null),
+
+    page.click(
+      CONFIG.seletores.btnConfirmar
+    ),
+  ])
+
+  log(
+    'Pós-clique. URL:',
+    page.url()
+  )
+}
+
+/* ============================================================================
+ * DETECÇÃO DE MULTAS
+ * ========================================================================== */
+
+async function detectarMultas(
+  page: Page
+): Promise<{
+  qtd: number
+  texto: string
+} | null> {
+  const handle = await page.waitForFunction(
+    (selAlerta, selResultado) => {
+      const alerta =
+        document.querySelector(
+          selAlerta
+        ) as HTMLElement | null
+
+      if (alerta) {
+        const style =
+          window.getComputedStyle(alerta)
+
+        const rect =
+          alerta.getBoundingClientRect()
+
+        if (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+        ) {
+          const texto =
+            (
+              alerta.innerText ||
+              ''
+            )
+              .trim()
+              .replace(
+                /\s+/g,
+                ' '
+              )
+
+          if (texto) {
+            return {
+              temMultas: true,
+              texto,
+            }
+          }
+        }
+      }
+
+      const resultadoVeiculo =
+        Array.from(
+          document.querySelectorAll(
+            selResultado
+          )
+        ).some(
+          elemento =>
+            (
+              elemento.textContent ||
+              ''
+            ).includes(
+              'Serviços referentes ao veículo de placa'
+            )
+        )
+
+      if (resultadoVeiculo) {
+        return {
+          temMultas: false,
+          texto: '',
+        }
+      }
+
+      return false
+    },
+    {
+      timeout:
+        CONFIG.timeouts.resultadoConsulta,
+      polling: 'mutation',
+    },
+    CONFIG.seletores.alertaMultas,
+    CONFIG.seletores.resultadoVeiculo
+  ).catch(() => null)
+
+  if (!handle) {
+    return null
+  }
+
+  const resultado =
+    (await handle.jsonValue()) as {
+      temMultas: boolean
+      texto: string
+    }
+
+  if (!resultado.temMultas) {
+    return null
+  }
+
+  const match =
+    resultado.texto.match(
+      /(\d+)\s+multa/i
+    )
+
+  return {
+    qtd:
+      match
+        ? Number(match[1])
+        : 0,
+    texto:
+      resultado.texto,
+  }
+}
+
+/* ============================================================================
+ * ESTADO DO MODAL
+ *
+ * IMPORTANTE:
+ *
+ * Não declare funções dentro de page.evaluate().
+ *
+ * Isso evita o problema:
+ *
+ * ReferenceError: __name is not defined
+ *
+ * causado pelo código transformado pelo bundler.
+ * ========================================================================== */
+
+interface EstadoModalMultas {
+  modalVisivel: boolean
+  tabelaVisivel: boolean
+  checkboxVisivel: boolean
+  btnVerOpcoesVisivel: boolean
+  btnBaixarBoletoVisivel: boolean
+  btnVoltarVisivel: boolean
+  alertaVisivel: boolean
+  alertaTexto: string
+}
+
+async function obterEstadoModal(
+  page: Page
+): Promise<EstadoModalMultas> {
+  return page.evaluate(
+    (seletores) => {
+      const modal =
+        document.querySelector(
+          seletores.modalMultas
+        ) as HTMLElement | null
+
+      const tabela =
+        document.querySelector(
+          `${seletores.tabelaMultas} tbody tr`
+        ) as HTMLTableRowElement | null
+
+      const checkboxes =
+        Array.from(
+          document.querySelectorAll<HTMLInputElement>(
+            seletores.checkboxMulta
+          )
+        )
+
+      const btnVerOpcoes =
+        document.querySelector(
+          seletores.btnVerOpcoes
+        ) as HTMLElement | null
+
+      const btnBaixar =
+        document.querySelector(
+          seletores.btnBaixarBoleto
+        ) as HTMLElement | null
+
+      const btnVoltar =
+        document.querySelector(
+          seletores.btnVoltarExtrato
+        ) as HTMLElement | null
+
+      const alerta =
+        document.querySelector(
+          seletores.alertaErroDETRAN
+        ) as HTMLElement | null
+
+      let modalVisivel =
+        false
+
+      if (modal) {
+        const style =
+          window.getComputedStyle(
+            modal
+          )
+
+        const rect =
+          modal.getBoundingClientRect()
+
+        modalVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+      }
+
+      let btnVerOpcoesVisivel =
+        false
+
+      if (btnVerOpcoes) {
+        const style =
+          window.getComputedStyle(
+            btnVerOpcoes
+          )
+
+        const rect =
+          btnVerOpcoes.getBoundingClientRect()
+
+        btnVerOpcoesVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+      }
+
+      let btnBaixarBoletoVisivel =
+        false
+
+      if (btnBaixar) {
+        const style =
+          window.getComputedStyle(
+            btnBaixar
+          )
+
+        const rect =
+          btnBaixar.getBoundingClientRect()
+
+        btnBaixarBoletoVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+      }
+
+      let btnVoltarVisivel =
+        false
+
+      if (btnVoltar) {
+        const style =
+          window.getComputedStyle(
+            btnVoltar
+          )
+
+        const rect =
+          btnVoltar.getBoundingClientRect()
+
+        btnVoltarVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+      }
+
+      let alertaVisivel =
+        false
+
+      let alertaTexto = ''
+
+      if (alerta) {
+        const style =
+          window.getComputedStyle(
+            alerta
+          )
+
+        const rect =
+          alerta.getBoundingClientRect()
+
+        alertaVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+
+        alertaTexto =
+          (
+            alerta.innerText ||
+            ''
+          )
+            .trim()
+            .replace(
+              /\s+/g,
+              ' '
+            )
+      }
+
+      let checkboxVisivel =
+        false
+
+      for (
+        const checkbox of checkboxes
+      ) {
+        const style =
+          window.getComputedStyle(
+            checkbox
+          )
+
+        const rect =
+          checkbox.getBoundingClientRect()
+
+        if (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+        ) {
+          checkboxVisivel = true
+          break
+        }
+      }
+
+      return {
+        modalVisivel,
+        tabelaVisivel:
+          !!tabela,
+        checkboxVisivel,
+        btnVerOpcoesVisivel,
+        btnBaixarBoletoVisivel,
+        btnVoltarVisivel,
+        alertaVisivel,
+        alertaTexto,
+      }
+    },
+    CONFIG.seletores
+  )
+}
+
+/* ============================================================================
+ * ABERTURA DO MODAL
+ * ========================================================================== */
+
+async function abrirModalMultas(
+  page: Page
+): Promise<void> {
+  log(
+    'Abrindo modal de multas...'
+  )
+
+  await page.waitForSelector(
+    CONFIG.seletores.alertaMultas,
+    {
+      timeout:
+        CONFIG.timeouts.seletor,
+      visible: true,
+    }
+  )
+
+  await page.click(
+    CONFIG.seletores.alertaMultas
+  )
 
   await page.waitForFunction(
-    (selModal: string, selTabela: string) => {
-      const modal = document.querySelector(selModal) as HTMLElement | null
-      if (!modal) return false
-      const style = window.getComputedStyle(modal)
-      return style.display !== 'none' && !!document.querySelector(`${selTabela} tbody tr`)
+    (selModal, selTabela) => {
+      const modal =
+        document.querySelector(
+          selModal
+        ) as HTMLElement | null
+
+      if (!modal) {
+        return false
+      }
+
+      const style =
+        window.getComputedStyle(
+          modal
+        )
+
+      const rect =
+        modal.getBoundingClientRect()
+
+      const modalVisivel =
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        style.opacity !== '0' &&
+        rect.width > 0 &&
+        rect.height > 0
+
+      if (!modalVisivel) {
+        return false
+      }
+
+      return !!document.querySelector(
+        `${selTabela} tbody tr`
+      )
     },
-    { timeout: CONFIG.timeouts.seletor },
+    {
+      timeout: 5_000,
+      polling: 100,
+    },
     CONFIG.seletores.modalMultas,
     CONFIG.seletores.tabelaMultas
   )
 
-  await new Promise((r) => setTimeout(r, 400))
-  log('Modal pronto.')
+  log(
+    'Modal pronto.'
+  )
 }
 
-async function extrairMultas(page: Page): Promise<MultaDetran[]> {
-  return page.evaluate((selTabela: string) => {
-    const linhas = Array.from(document.querySelectorAll(`${selTabela} tbody tr`))
+/**
+ * Garante que o modal está em um estado utilizável.
+ */
+async function garantirModalMultas(
+  page: Page
+): Promise<void> {
+  const estado =
+    await obterEstadoModal(
+      page
+    )
 
-    const resultado: MultaDetran[] = []
+  if (
+    !estado.modalVisivel ||
+    !estado.tabelaVisivel
+  ) {
+    await abrirModalMultas(
+      page
+    )
 
-    for (const tr of linhas) {
-      const tds = Array.from(tr.querySelectorAll('td'))
-      if (tds.length < 7) continue
-      if (tr.querySelector('b')?.innerText?.toUpperCase().includes('TOTAL')) continue
-
-      const ait = (tds[1]?.innerText || '').trim()
-      if (!ait || ait === '--') continue
-
-      resultado.push({
-        ait,
-        motivo: (tds[3]?.innerText || '').trim(),
-        dataInfracao: (tds[4]?.innerText || '').trim(),
-        dataVencimento: (tds[5]?.innerText || '').trim(),
-        valor: (tds[6]?.innerText || '').trim(),
-        valorPagar: (tds[7]?.innerText || '').trim(),
-      })
-    }
-
-    return resultado
-  }, CONFIG.seletores.tabelaMultas)
-}
-
-/* ============================================================================
- * HELPERS DE DOMÍNIO — SELEÇÃO E DOWNLOAD POR MULTA
- * ==========================================================================*/
-
-async function marcarApenasUm(page: Page, ait: string): Promise<void> {
-  log(`Marcando checkbox do AIT ${ait}...`)
-
-  const seletorAlvo = `#multas_${ait}`
-
-  const existe = await page.$(seletorAlvo)
-  if (!existe) {
-    logErr(`Checkbox ${seletorAlvo} não encontrado no DOM.`)
     return
   }
 
-  await page.evaluate((sel, aitAlvo: string) => {
-    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>(sel))
-    for (const cb of boxes) {
-      cb.disabled = false
+  if (
+    !estado.checkboxVisivel &&
+    estado.btnVoltarVisivel
+  ) {
+    await voltarParaSelecaoMultas(
+      page
+    )
+  }
+}
 
-      if (cb.id !== `multas_${aitAlvo}` && cb.checked) {
-        cb.checked = false
-        cb.dispatchEvent(new Event('change', { bubbles: true }))
+/* ============================================================================
+ * LIMPEZA DO ESTADO ANTERIOR
+ * ========================================================================== */
+
+/**
+ * Limpa alerta antigo e seleção em uma única ida ao contexto do Chrome.
+ */
+async function limparEstadoAnterior(
+  page: Page
+): Promise<void> {
+  await page.evaluate(
+    (selAlerta, selBoxes) => {
+      const alertas =
+        Array.from(
+          document.querySelectorAll<HTMLElement>(
+            selAlerta
+          )
+        )
+
+      for (const alerta of alertas) {
+        alerta.style.display = 'none'
+        alerta.style.visibility = 'hidden'
+        alerta.style.opacity = '0'
+        alerta.textContent = ''
       }
-    }
 
-    const alvo = document.querySelector<HTMLInputElement>(`#multas_${aitAlvo}`)
-    if (alvo) {
-      alvo.disabled = false
-      alvo.checked = false
-    }
-  }, CONFIG.seletores.checkboxMulta, ait)
+      const boxes =
+        Array.from(
+          document.querySelectorAll<HTMLInputElement>(
+            selBoxes
+          )
+        )
 
-  await new Promise((r) => setTimeout(r, 200))
+      for (const checkbox of boxes) {
+        if (
+          checkbox.checked &&
+          !checkbox.disabled
+        ) {
+          checkbox.click()
+        }
+      }
+    },
+    CONFIG.seletores.alertaErroDETRAN,
+    CONFIG.seletores.checkboxMulta
+  )
 
-  try {
-    await page.click(seletorAlvo, { delay: 30 })
-  } catch (err: any) {
-    logErr(`Clique real falhou no ${seletorAlvo}: ${err?.message}`)
+  await page.waitForFunction(
+    sel =>
+      Array.from(
+        document.querySelectorAll<HTMLInputElement>(
+          sel
+        )
+      ).every(
+        checkbox => !checkbox.checked
+      ),
+    {
+      timeout:
+        CONFIG.timeouts.selecao,
+      polling: 'mutation',
+    },
+    CONFIG.seletores.checkboxMulta
+  )
+}
+
+/* ============================================================================
+ * VOLTAR PARA SELEÇÃO
+ * ========================================================================== */
+
+async function voltarParaSelecaoMultas(
+  page: Page,
+  forcar = false
+): Promise<void> {
+  const estado =
+    await obterEstadoModal(
+      page
+    )
+
+  if (
+    !estado.modalVisivel ||
+    (!forcar &&
+      estado.checkboxVisivel) ||
+    !estado.btnVoltarVisivel
+  ) {
+    return
   }
 
-  const marcouAposClique = await page.evaluate((sel) => {
-    const cb = document.querySelector(sel) as HTMLInputElement | null
-    return !!cb && cb.checked
-  }, seletorAlvo)
+  log(
+    'Voltando para a tela de seleção de multas...'
+  )
 
-  if (marcouAposClique) return
+  await page.click(
+    CONFIG.seletores.btnVoltarExtrato
+  )
 
-  log('Clique real não marcou. Tentando via jQuery/prop...')
+  await page.waitForFunction(
+    (
+      selCheckbox,
+      selVoltar,
+      selVerOpcoes
+    ) => {
+      const checkbox =
+        document.querySelector(
+          selCheckbox
+        ) as HTMLInputElement | null
 
-  await page.evaluate((sel) => {
-    const cb = document.querySelector(sel) as HTMLInputElement | null
-    if (!cb) return
-
-    const w = window as any
-    if (w.$) {
-      try {
-        w.$(cb).prop('checked', true).trigger('change')
-        return
-      } catch {
-        /* segue pro fallback manual */
+      if (!checkbox) {
+        return false
       }
+
+      const checkboxStyle =
+        window.getComputedStyle(
+          checkbox
+        )
+
+      const checkboxRect =
+        checkbox.getBoundingClientRect()
+
+      const checkboxVisivel =
+        checkboxStyle.display !== 'none' &&
+        checkboxStyle.visibility !== 'hidden' &&
+        checkboxStyle.opacity !== '0' &&
+        checkboxRect.width > 0 &&
+        checkboxRect.height > 0
+
+      if (!checkboxVisivel) {
+        return false
+      }
+
+      const btnVoltar =
+        document.querySelector(
+          selVoltar
+        ) as HTMLElement | null
+
+      const btnVerOpcoes =
+        document.querySelector(
+          selVerOpcoes
+        ) as HTMLElement | null
+
+      let voltarVisivel = false
+      let verOpcoesVisivel = false
+
+      if (btnVoltar) {
+        const style =
+          window.getComputedStyle(
+            btnVoltar
+          )
+
+        const rect =
+          btnVoltar.getBoundingClientRect()
+
+        voltarVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+      }
+
+      if (btnVerOpcoes) {
+        const style =
+          window.getComputedStyle(
+            btnVerOpcoes
+          )
+
+        const rect =
+          btnVerOpcoes.getBoundingClientRect()
+
+        verOpcoesVisivel =
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+      }
+
+      return (
+        verOpcoesVisivel ||
+        !voltarVisivel
+      )
+    },
+    {
+      timeout:
+        CONFIG.timeouts.seletor,
+      polling: 'mutation',
+    },
+    CONFIG.seletores.checkboxMulta,
+    CONFIG.seletores.btnVoltarExtrato,
+    CONFIG.seletores.btnVerOpcoes
+  )
+
+  log(
+    'Tela de seleção restaurada.'
+  )
+}
+
+/* ============================================================================
+ * EXTRAÇÃO DAS MULTAS
+ * ========================================================================== */
+
+async function extrairMultas(
+  page: Page
+): Promise<MultaDetran[]> {
+  const anoAtual =
+    new Date().getFullYear()
+
+  const multas =
+    await page.evaluate(
+      (selTabela, anoAtual) => {
+        const linhas =
+          Array.from(
+            document.querySelectorAll<HTMLTableRowElement>(
+              `${selTabela} tbody tr`
+            )
+          )
+
+        const resultado: MultaDetran[] = []
+
+        for (
+          const tr of linhas
+        ) {
+          const tds =
+            Array.from(
+              tr.querySelectorAll<HTMLTableCellElement>(
+                'td'
+              )
+            )
+
+          if (
+            tds.length < 8
+          ) {
+            continue
+          }
+
+          const textoLinha =
+            (
+              tr.innerText ||
+              ''
+            )
+              .trim()
+              .toUpperCase()
+
+          if (
+            textoLinha.includes(
+              'TOTAL'
+            )
+          ) {
+            continue
+          }
+
+          const ait =
+            (
+              tds[1]?.innerText ||
+              ''
+            ).trim()
+
+          const dataInfracao =
+            (
+              tds[4]?.innerText ||
+              ''
+            ).trim()
+
+          if (
+            !ait ||
+            ait === '--' ||
+            !dataInfracao
+          ) {
+            continue
+          }
+
+          const matchAno =
+            dataInfracao.match(
+              /^(\d{2})\/(\d{2})\/(\d{4})$/
+            )
+
+          if (
+            !matchAno ||
+            Number(matchAno[3]) !== anoAtual
+          ) {
+            continue
+          }
+
+          resultado.push({
+            ait,
+            motivo:
+              (
+                tds[3]?.innerText ||
+                ''
+              ).trim(),
+            dataInfracao,
+            dataVencimento:
+              (
+                tds[5]?.innerText ||
+                ''
+              ).trim(),
+            valor:
+              (
+                tds[6]?.innerText ||
+                ''
+              ).trim(),
+            valorPagar:
+              (
+                tds[7]?.innerText ||
+                ''
+              ).trim(),
+          })
+        }
+
+        return resultado
+      },
+      CONFIG.seletores.tabelaMultas,
+      anoAtual
+    )
+
+  const mapa =
+    new Map<
+      string,
+      MultaDetran
+    >()
+
+  for (
+    const multa of multas
+  ) {
+    const chave =
+      chaveMulta(
+        multa.ait,
+        multa.dataInfracao
+      )
+
+    if (
+      !mapa.has(chave)
+    ) {
+      mapa.set(
+        chave,
+        multa
+      )
+    }
+  }
+
+  const unicas =
+    Array.from(
+      mapa.values()
+    )
+
+  if (
+    unicas.length !==
+    multas.length
+  ) {
+    log(
+      `Duplicatas removidas: ${
+        multas.length -
+        unicas.length
+      }`
+    )
+  }
+
+  return unicas
+}
+
+/* ============================================================================
+ * CHECKBOX
+ * ========================================================================== */
+
+/**
+ * Limpa todos os checkboxes usando clique nativo.
+ *
+ * Isso permite que os handlers JS do DETRAN sejam executados
+ * normalmente.
+ */
+async function limparSelecaoMultas(
+  page: Page
+): Promise<void> {
+  await page.evaluate(
+    sel => {
+      const boxes =
+        Array.from(
+          document.querySelectorAll<HTMLInputElement>(
+            sel
+          )
+        )
+
+      for (const checkbox of boxes) {
+        if (
+          checkbox.checked &&
+          !checkbox.disabled
+        ) {
+          checkbox.click()
+        }
+      }
+    },
+    CONFIG.seletores.checkboxMulta
+  )
+
+  await page.waitForFunction(
+    sel =>
+      Array.from(
+        document.querySelectorAll<HTMLInputElement>(
+          sel
+        )
+      ).every(
+        checkbox => !checkbox.checked
+      ),
+    {
+      timeout:
+        CONFIG.timeouts.selecao,
+      polling: 'mutation',
+    },
+    CONFIG.seletores.checkboxMulta
+  )
+}
+
+/**
+ * Seleciona somente um AIT.
+ */
+async function marcarApenasUm(
+  page: Page,
+  ait: string
+): Promise<void> {
+  log(
+    `Marcando checkbox do AIT ${ait}...`
+  )
+
+  const seletorAlvo =
+    `#multas_${ait}`
+
+  await page.waitForSelector(
+    seletorAlvo,
+    {
+      timeout:
+        CONFIG.timeouts.selecao,
+      visible: true,
+    }
+  )
+
+  await limparSelecaoMultas(
+    page
+  )
+
+  await page.evaluate(
+    sel => {
+      const checkbox =
+        document.querySelector(
+          sel
+        ) as HTMLInputElement | null
+
+      if (!checkbox) {
+        throw new Error(
+          `Checkbox ${sel} não encontrado.`
+        )
+      }
+
+      if (!checkbox.checked) {
+        checkbox.click()
+      }
+    },
+    seletorAlvo
+  )
+
+  await page.waitForFunction(
+    sel => {
+      const checkbox =
+        document.querySelector(
+          sel
+        ) as HTMLInputElement | null
+
+      return (
+        !!checkbox &&
+        checkbox.checked
+      )
+    },
+    {
+      timeout:
+        CONFIG.timeouts.selecao,
+      polling: 'mutation',
+    },
+    seletorAlvo
+  )
+
+  log(
+    `AIT ${ait} selecionado.`
+  )
+}
+
+/* ============================================================================
+ * PAGAMENTO
+ * ========================================================================== */
+
+type EstadoPagamento =
+  | {
+      status: 'baixar'
+    }
+  | {
+      status: 'ver-opcoes'
     }
 
-    cb.disabled = false
-    cb.checked = true
-    cb.dispatchEvent(new Event('change', { bubbles: true }))
-    cb.dispatchEvent(new Event('input', { bubbles: true }))
-  }, seletorAlvo)
-}
+/**
+ * Aguarda somente os estados válidos ANTES de tentar emitir o boleto.
+ *
+ * IMPORTANTE:
+ * O .multas-alert pode conter uma mensagem deixada pela emissão de um AIT
+ * anterior. Portanto, ele NÃO é consultado aqui.
+ *
+ * Neste ponto só nos interessa saber qual ação o usuário precisa executar:
+ * - clicar em "Baixar boleto"; ou
+ * - clicar em "Ver opções de pagamento".
+ */
+async function esperarEstadoPagamento(
+  page: Page
+): Promise<EstadoPagamento> {
+  const handle =
+    await page.waitForFunction(
+      (
+        selBaixar,
+        selVerOpcoes
+      ) => {
+        const btnBaixar =
+          document.querySelector(
+            selBaixar
+          ) as HTMLElement | null
 
-async function confirmarMarcado(page: Page, ait: string): Promise<boolean> {
-  return page.evaluate((aitAlvo: string) => {
-    const cb = document.querySelector(`#multas_${aitAlvo}`) as HTMLInputElement | null
-    return !!cb && cb.checked
-  }, ait)
-}
+        if (btnBaixar) {
+          const style =
+            window.getComputedStyle(
+              btnBaixar
+            )
 
-type ResultadoVerOpcoes = 'ok' | 'alerta'
+          const rect =
+            btnBaixar.getBoundingClientRect()
 
-async function clicarVerOpcoes(page: Page): Promise<ResultadoVerOpcoes> {
-  log('Clicando em "Ver opções de pagamento"...')
-  await page.click(CONFIG.seletores.btnVerOpcoes)
-
-  const handle = await page
-    .waitForFunction(
-      (selBaixar: string, selAlerta: string) => {
-        const alerta = document.querySelector(selAlerta) as HTMLElement | null
-        if (alerta) {
-          const sA = window.getComputedStyle(alerta)
-          if (sA.display !== 'none' && sA.visibility !== 'hidden') {
-            const texto = (alerta.innerText || '').trim()
-            if (texto) return { status: 'alerta', mensagem: texto }
+          if (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            style.opacity !== '0' &&
+            rect.width > 0 &&
+            rect.height > 0
+          ) {
+            return {
+              status: 'baixar',
+            }
           }
         }
 
-        const btn = document.querySelector(selBaixar) as HTMLElement | null
-        if (btn) {
-          const sB = window.getComputedStyle(btn)
-          if (sB.display !== 'none' && sB.visibility !== 'hidden') {
-            return { status: 'ok' }
+        const btnVerOpcoes =
+          document.querySelector(
+            selVerOpcoes
+          ) as HTMLElement | null
+
+        if (btnVerOpcoes) {
+          const style =
+            window.getComputedStyle(
+              btnVerOpcoes
+            )
+
+          const rect =
+            btnVerOpcoes.getBoundingClientRect()
+
+          if (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            style.opacity !== '0' &&
+            rect.width > 0 &&
+            rect.height > 0
+          ) {
+            return {
+              status: 'ver-opcoes',
+            }
           }
         }
 
         return false
       },
-      { timeout: CONFIG.timeouts.seletor },
+      {
+        timeout:
+          CONFIG.timeouts.emissao,
+        polling: 'mutation',
+      },
       CONFIG.seletores.btnBaixarBoleto,
-      CONFIG.seletores.alertaErroDETRAN
-    )
-    .catch(() => null)
+      CONFIG.seletores.btnVerOpcoes
+    ).catch(() => null)
 
   if (!handle) {
-    logErr('Timeout aguardando "Baixar boleto" ou alerta de erro do DETRAN.')
-    return 'alerta'
+    throw new Error(
+      'Timeout aguardando os botões de pagamento do DETRAN.'
+    )
   }
 
-  const valor = (await handle.jsonValue()) as
-    | { status: 'ok' }
-    | { status: 'alerta'; mensagem?: string }
-
-  if (valor.status === 'alerta') {
-    logErr(`DETRAN retornou alerta: "${valor.mensagem || '(sem texto)'}"`)
-    return 'alerta'
-  }
-
-  return 'ok'
+  return (
+    await handle.jsonValue()
+  ) as EstadoPagamento
 }
 
-async function abrirBoleto(browser: Browser, page: Page): Promise<string | null> {
-  log('Clicando em "Baixar boleto para pagamento à vista"...')
+/**
+ * Depois de clicar em "Ver opções de pagamento", o DETRAN pode levar
+ * alguns milissegundos para esconder esse botão e exibir "Baixar boleto".
+ *
+ * IMPORTANTE:
+ * Neste segundo estágio NÃO usamos esperarEstadoPagamento(), porque
+ * "Ver opções" ainda pode continuar visível por alguns instantes.
+ */
+async function esperarBoletoOuAlerta(
+  page: Page
+): Promise<
+  | { status: 'baixar' }
+  | {
+      status: 'alerta'
+      mensagem: string
+    }
+> {
+  const handle =
+    await page.waitForFunction(
+      (
+        selBaixar,
+        selAlerta
+      ) => {
+        const alerta =
+          document.querySelector(
+            selAlerta
+          ) as HTMLElement | null
 
-  const novaAbaPromise = esperarNovaAba(browser, CONFIG.timeouts.novaAba)
-  await page.click(CONFIG.seletores.btnBaixarBoleto).catch(() => null)
+        if (alerta) {
+          const style =
+            window.getComputedStyle(
+              alerta
+            )
 
-  const pdfPage = await novaAbaPromise
-  if (!pdfPage) {
-    logErr('Nenhuma nova aba abriu após clicar em baixar boleto.')
-    return null
+          const rect =
+            alerta.getBoundingClientRect()
+
+          if (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            style.opacity !== '0' &&
+            rect.width > 0 &&
+            rect.height > 0
+          ) {
+            const mensagem =
+              (
+                alerta.innerText ||
+                ''
+              )
+                .trim()
+                .replace(
+                  /\s+/g,
+                  ' '
+                )
+
+            if (mensagem) {
+              return {
+                status: 'alerta',
+                mensagem,
+              }
+            }
+          }
+        }
+
+        const btnBaixar =
+          document.querySelector(
+            selBaixar
+          ) as HTMLElement | null
+
+        if (btnBaixar) {
+          const style =
+            window.getComputedStyle(
+              btnBaixar
+            )
+
+          const rect =
+            btnBaixar.getBoundingClientRect()
+
+          if (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            style.opacity !== '0' &&
+            rect.width > 0 &&
+            rect.height > 0
+          ) {
+            return {
+              status: 'baixar',
+            }
+          }
+        }
+
+        return false
+      },
+      {
+        timeout:
+          CONFIG.timeouts.emissao,
+        polling: 'mutation',
+      },
+      CONFIG.seletores.btnBaixarBoleto,
+      CONFIG.seletores.alertaErroDETRAN
+    ).catch(() => null)
+
+  if (!handle) {
+    throw new Error(
+      'Timeout aguardando "Baixar boleto" ou alerta do DETRAN após "Ver opções de pagamento".'
+    )
   }
 
-  log('Nova aba aberta. URL:', pdfPage.url())
+  return (
+    await handle.jsonValue()
+  ) as
+    | {
+        status: 'baixar'
+      }
+    | {
+        status: 'alerta'
+        mensagem: string
+      }
+}
 
-  await new Promise((r) => setTimeout(r, 2500))
+/**
+ * Prepara a emissão do boleto.
+ *
+ * O DETRAN pode:
+ * A) já mostrar "Baixar boleto"
+ * ou:
+ * B) mostrar "Ver opções de pagamento"
+ *    -> clicar
+ *    -> aguardar "Baixar boleto" ou alerta
+ */
+async function prepararDownloadBoleto(
+  page: Page
+): Promise<void> {
+  const estado =
+    await esperarEstadoPagamento(
+      page
+    )
 
-  const url = pdfPage.url()
-  log('URL do boleto:', url)
+  if (
+    estado.status ===
+    'baixar'
+  ) {
+    log(
+      'Botão "Baixar boleto" já está disponível.'
+    )
+    return
+  }
 
-  await pdfPage.close().catch(() => null)
-  return url
+  log(
+    'Botão "Ver opções de pagamento" detectado.'
+  )
+
+  await page.click(
+    CONFIG.seletores.btnVerOpcoes
+  )
+
+  log(
+    'Aguardando resultado da emissão: "Baixar boleto" ou validação do DETRAN...'
+  )
+
+  const proximoEstado =
+    await esperarBoletoOuAlerta(
+      page
+    )
+
+  if (
+    proximoEstado.status ===
+    'alerta'
+  ) {
+    throw new Error(
+      proximoEstado.mensagem
+    )
+  }
+
+  log(
+    'Botão "Baixar boleto" disponível.'
+  )
+}
+
+/* ============================================================================
+ * BOLETO
+ * ========================================================================== */
+
+/**
+ * Abre a aba do boleto e pega a URL.
+ *
+ * O evento popup do Puppeteer pode entregar Page | null na tipagem atual.
+ * Por isso o handler aceita explicitamente null.
+ */
+async function abrirBoleto(
+  page: Page
+): Promise<string | null> {
+  log(
+    'Clicando em "Baixar boleto para pagamento à vista"...'
+  )
+
+  let timer:
+    ReturnType<typeof setTimeout> |
+    undefined
+
+  const popupPromise =
+    new Promise<Page>(
+      (resolve, reject) => {
+        const onPopup = (
+          popup: Page | null
+        ) => {
+          if (timer) {
+            clearTimeout(timer)
+          }
+
+          if (!popup) {
+            reject(
+              new Error(
+                'O DETRAN abriu um popup inválido.'
+              )
+            )
+            return
+          }
+
+          resolve(popup)
+        }
+
+        page.once(
+          'popup',
+          onPopup
+        )
+
+        timer =
+          setTimeout(
+            () => {
+              page.off(
+                'popup',
+                onPopup
+              )
+
+              reject(
+                new Error(
+                  'Nenhuma nova aba foi criada pelo botão do boleto.'
+                )
+              )
+            },
+            CONFIG.timeouts.novaAba
+          )
+      }
+    )
+
+  let boletoPage:
+    Page | null = null
+
+  try {
+    await page.click(
+      CONFIG.seletores.btnBaixarBoleto
+    )
+
+    boletoPage =
+      await popupPromise
+
+    await boletoPage.waitForFunction(
+      () => {
+        const url =
+          window.location.href
+
+        return (
+          url !==
+            'about:blank' &&
+          /^https?:\/\//i.test(
+            url
+          )
+        )
+      },
+      {
+        timeout:
+          CONFIG.timeouts.novaAba
+      }
+    )
+
+    const url =
+      boletoPage.url()
+
+    if (
+      !url ||
+      url ===
+        'about:blank'
+    ) {
+      logErr(
+        'URL do boleto inválida.'
+      )
+
+      return null
+    }
+
+    log(
+      'URL do boleto:',
+      url
+    )
+
+    return url
+  } catch (error) {
+    logErr(
+      'Falha ao abrir/capturar boleto:',
+      error instanceof Error
+        ? error.message
+        : String(error)
+    )
+
+    return null
+  } finally {
+    if (timer) {
+      clearTimeout(timer)
+    }
+
+    await boletoPage
+      ?.close()
+      .catch(() => null)
+  }
+}
+
+/* ============================================================================
+ * DOWNLOAD PDF
+ * ========================================================================== */
+
+async function montarCookieHeader(
+  context: BrowserContext
+): Promise<string> {
+  const cookies =
+    await context.cookies()
+
+  return cookies
+    .map(
+      cookie =>
+        `${cookie.name}=${cookie.value}`
+    )
+    .join('; ')
+}
+
+interface SessaoDownloadDetran {
+  userAgent: string
+  cookieHeader: string
 }
 
 async function baixarPdfDeMulta(
+  context: BrowserContext,
   page: Page,
   pdfUrl: string,
   placa: string,
   multa: MultaDetran,
-  destinoDir: string
+  destinoDir: string,
+  sessao: SessaoDownloadDetran
 ): Promise<string | undefined> {
-  const nomeArquivo = gerarNomeArquivoBoleto(placa, multa)
-  const pdfPath = path.join(destinoDir, nomeArquivo)
+  const nomeArquivo =
+    gerarNomeArquivoBoleto(
+      placa,
+      multa
+    )
 
-  log('Baixando PDF como:', nomeArquivo)
+  const pdfPath =
+    path.join(
+      destinoDir,
+      nomeArquivo
+    )
+
+  log(
+    'Baixando PDF como:',
+    nomeArquivo
+  )
+
+  const fazerFetch = (
+    cookieHeader: string
+  ) =>
+    fetch(
+      pdfUrl,
+      {
+        method: 'GET',
+        redirect: 'follow',
+        headers: {
+          Accept:
+            'application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+          Cookie:
+            cookieHeader,
+          'User-Agent':
+            sessao.userAgent,
+          Referer:
+            page.url(),
+        },
+      }
+    )
 
   try {
-    const pdfBase64 = await page.evaluate(async (url: string) => {
-      const resp = await fetch(url, { credentials: 'include' })
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-      const buf = await resp.arrayBuffer()
-      const bytes = new Uint8Array(buf)
+    let response =
+      await fazerFetch(
+        sessao.cookieHeader
+      )
 
-      let binary = ''
-      const chunk = 0x8000
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(
-          null,
-          Array.from(bytes.subarray(i, i + chunk)) as unknown as number[]
+    if (
+      response.status === 401 ||
+      response.status === 403
+    ) {
+      sessao.cookieHeader =
+        await montarCookieHeader(
+          context
         )
-      }
-      return btoa(binary)
-    }, pdfUrl)
 
-    fs.writeFileSync(pdfPath, Buffer.from(pdfBase64, 'base64'))
-    log('PDF salvo:', pdfPath)
+      response =
+        await fazerFetch(
+          sessao.cookieHeader
+        )
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status} ao baixar PDF.`
+      )
+    }
+
+    const buffer =
+      Buffer.from(
+        await response.arrayBuffer()
+      )
+
+    const assinatura =
+      buffer
+        .subarray(0, 5)
+        .toString('utf8')
+
+    if (
+      assinatura !==
+      '%PDF-'
+    ) {
+      const contentType =
+        response.headers.get(
+          'content-type'
+        )
+
+      throw new Error(
+        `Resposta não parece PDF. Content-Type: ${
+          contentType ||
+          'desconhecido'
+        }`
+      )
+    }
+
+    await fs.promises.writeFile(
+      pdfPath,
+      buffer
+    )
+
+    log(
+      'PDF salvo:',
+      pdfPath
+    )
+
     return pdfPath
-  } catch (err: any) {
-    logErr('Falha ao baixar PDF:', err?.message)
+  } catch (error: unknown) {
+    logErr(
+      'Falha ao baixar PDF:',
+      error instanceof Error
+        ? error.message
+        : String(error)
+    )
+
     return undefined
   }
 }
 
 /* ============================================================================
- * FLUXO PRINCIPAL
- * ==========================================================================*/
+ * PREPARAR PRÓXIMA MULTA
+ * ========================================================================== */
+
+async function prepararProximaMulta(
+  page: Page
+): Promise<void> {
+  let estado =
+    await obterEstadoModal(
+      page
+    )
+
+  if (
+    !estado.modalVisivel ||
+    !estado.tabelaVisivel
+  ) {
+    await abrirModalMultas(
+      page
+    )
+
+    estado =
+      await obterEstadoModal(
+        page
+      )
+  }
+
+  log(
+    `Estado antes do próximo AIT: checkbox=${estado.checkboxVisivel} verOpcoes=${estado.btnVerOpcoesVisivel} baixar=${estado.btnBaixarBoletoVisivel} voltar=${estado.btnVoltarVisivel} alerta=${estado.alertaVisivel}`
+  )
+
+  if (
+    estado.btnVoltarVisivel &&
+    !estado.btnVerOpcoesVisivel
+  ) {
+    await voltarParaSelecaoMultas(
+      page,
+      true
+    )
+  }
+
+  await limparEstadoAnterior(
+    page
+  )
+
+  log(
+    'Tela de seleção limpa e pronta para o próximo AIT.'
+  )
+}
+
+/* ============================================================================
+ * PROCESSAR UMA MULTA
+ * ========================================================================== */
+
+async function processarMulta(
+  context: BrowserContext,
+  page: Page,
+  placa: string,
+  multa: MultaDetran,
+  storageDir: string,
+  sessaoDownload: SessaoDownloadDetran
+): Promise<void> {
+  await prepararProximaMulta(
+    page
+  )
+
+  await marcarApenasUm(
+    page,
+    multa.ait
+  )
+
+  await prepararDownloadBoleto(
+    page
+  )
+
+  const pdfUrl =
+    await abrirBoleto(
+      page
+    )
+
+  if (!pdfUrl) {
+    throw new Error(
+      'Não foi possível capturar a URL do PDF.'
+    )
+  }
+
+  const caminho =
+    await baixarPdfDeMulta(
+      context,
+      page,
+      pdfUrl,
+      placa,
+      multa,
+      storageDir,
+      sessaoDownload
+    )
+
+  if (!caminho) {
+    throw new Error(
+      'Falha ao salvar o PDF no disco.'
+    )
+  }
+
+  multa.caminhoPdf =
+    caminho
+}
+
+/* ============================================================================
+ * CONSULTA PRINCIPAL
+ * ========================================================================== */
 
 export async function consultarVeiculoDetran(
   dados: DadosConsultaDetran
 ): Promise<ResultadoConsultaDetran> {
-  const { placa, chassi, aitJaBaixados } = dados
+  const {
+    placa,
+    chassi,
+    aitJaBaixados,
+  } = dados
 
-  log('======================================================')
-  log(`Iniciando consulta: placa=${placa} chassi=${chassi}`)
-  if (aitJaBaixados && aitJaBaixados.size > 0) {
-    log(`Multas já baixadas em execuções anteriores: ${aitJaBaixados.size}`)
+  log(
+    '======================================================'
+  )
+
+  log(
+    `Iniciando consulta: placa=${placa} chassi=${chassi}`
+  )
+
+  if (
+    aitJaBaixados &&
+    aitJaBaixados.size > 0
+  ) {
+    log(
+      `Multas já baixadas em execuções anteriores: ${aitJaBaixados.size}`
+    )
   }
 
-  const storageDir = path.resolve(process.cwd(), 'storage', 'documentos', 'detran')
-  fs.mkdirSync(storageDir, { recursive: true })
+  const storageDir =
+    path.resolve(
+      process.cwd(),
+      'storage',
+      'documentos',
+      'detran'
+    )
 
-  let browser: Browser | null = null
+  fs.mkdirSync(
+    storageDir,
+    {
+      recursive: true,
+    }
+  )
+
+  let context:
+    | BrowserContext
+    | null = null
 
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: getChromeExecutablePath(),
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    })
-    log('Browser OK. Versão:', await browser.version())
+    const browser =
+      await obterBrowserDetran()
 
-    const page = await browser.newPage()
+    context =
+      await browser.createBrowserContext()
 
-    page.on('requestfailed', (req) => {
-      logErr(`Requisição falhou: ${req.method()} ${req.url()} — ${req.failure()?.errorText}`)
-    })
-    page.on('pageerror', (err: unknown) => {
-      logErr('Erro de JS na página:', err instanceof Error ? err.message : String(err))
-    })
+    const page =
+      await context.newPage()
 
-    const client = await page.target().createCDPSession()
-    await client.send('Page.setDownloadBehavior', {
-      behavior: 'allow',
-      downloadPath: storageDir,
-    })
+    await configurarPagina(
+      page
+    )
 
-    page.setDefaultNavigationTimeout(CONFIG.timeouts.navegacao)
-    page.setDefaultTimeout(CONFIG.timeouts.padrao)
+    await medirEtapa(
+      'goto central',
+      async () => {
+        log(
+          'Navegando para a central...'
+        )
 
-    // ---- 1. Central ----
-    log('Navegando para a central...')
-    await page.goto(CONFIG.urls.central, { waitUntil: 'networkidle2' })
+        await page.goto(
+          CONFIG.urls.central,
+          {
+            waitUntil:
+              'domcontentloaded',
+          }
+        )
+      }
+    )
 
-    // ---- 2. Abrir Taxas/Multas ----
-    await abrirFormularioTaxasMultas(page)
+    await medirEtapa(
+      'abrir taxas/multas',
+      () =>
+        abrirFormularioTaxasMultas(
+          page
+        )
+    )
 
-    // ---- 3. Preencher e confirmar ----
-    await submeterConsulta(page, placa, chassi)
+    await medirEtapa(
+      'consultar veículo',
+      () =>
+        submeterConsulta(
+          page,
+          placa,
+          chassi
+        )
+    )
 
-    // ---- 4. Verificar se tem multas ----
-    const deteccao = await detectarMultas(page)
-    log('Detecção:', deteccao ? `${deteccao.qtd} multa(s)` : 'sem multas')
+    const deteccao =
+      await medirEtapa(
+        'detectar multas',
+        () =>
+          detectarMultas(
+            page
+          )
+      )
 
-    if (!deteccao || deteccao.qtd <= 0) {
+    log(
+      'Detecção:',
+      deteccao
+        ? `${deteccao.qtd} multa(s)`
+        : 'sem multas'
+    )
+
+    if (
+      !deteccao ||
+      deteccao.qtd <= 0
+    ) {
       return {
         sucesso: true,
         placa,
         chassi,
-        statusConsulta: 'QUITADO',
+        statusConsulta:
+          'QUITADO',
       }
     }
 
-    // ---- 5. Abrir modal, extrair a lista ----
-    await reabrirModalMultas(page)
-    const multas = await extrairMultas(page)
+    await medirEtapa(
+      'abrir modal multas',
+      () =>
+        garantirModalMultas(
+          page
+        )
+    )
 
-    log('Multas extraídas:', JSON.stringify(multas, null, 2))
+    const multas =
+      await medirEtapa(
+        'extrair multas',
+        () =>
+          extrairMultas(
+            page
+          )
+      )
 
-    if (multas.length === 0) {
-      logErr('Alerta indicava multas, mas tabela veio vazia.')
-      await salvarDebug(page, 'multas-vazias')
+    log(
+      'Multas extraídas:',
+      JSON.stringify(
+        multas,
+        null,
+        2
+      )
+    )
+
+    if (
+      multas.length === 0
+    ) {
+      const anoAtual =
+        new Date().getFullYear()
+
+      log(
+        `Nenhuma multa do ano ${anoAtual} encontrada. Infrações de outros anos serão ignoradas.`
+      )
+
       return {
-        sucesso: false,
+        sucesso: true,
         placa,
         chassi,
-        statusConsulta: 'ERRO',
-        mensagemErro: 'Alerta indicava multas, mas a lista do modal veio vazia.',
+        statusConsulta:
+          'QUITADO',
       }
     }
 
-    const tipoDebito = `${multas.length} multa${multas.length > 1 ? 's' : ''} de trânsito`
+    const tipoDebito =
+      `${multas.length} multa${
+        multas.length > 1
+          ? 's'
+          : ''
+      } de trânsito`
 
-    // ---- 6. Loop: reabre modal → marca 1 → baixa 1 (só as que ainda não baixamos) ----
-    log('======================================================')
-    log(`Iniciando processamento de ${multas.length} multa(s)...`)
-    log('======================================================')
+    log(
+      '======================================================'
+    )
 
-    let primeiroPdfOk: string | undefined
+    log(
+      `Iniciando processamento de ${multas.length} multa(s)...`
+    )
 
-    for (let i = 0; i < multas.length; i++) {
-      const multa = multas[i]
-      log(`\n----- Boleto ${i + 1}/${multas.length}: AIT ${multa.ait} (${multa.dataInfracao}) -----`)
+    log(
+      '======================================================'
+    )
 
-      // ---- Já foi baixada antes pra essa placa? ----
-      const chave = chaveMulta(multa.ait, multa.dataInfracao)
-      if (aitJaBaixados?.has(chave)) {
-        log(`Multa já baixada anteriormente. Pulando download.`)
-        multa.jaBaixada = true
+    let sessaoDownload:
+      | SessaoDownloadDetran
+      | undefined
+
+    let primeiroPdfOk:
+      | string
+      | undefined
+
+    for (
+      let i = 0;
+      i < multas.length;
+      i++
+    ) {
+      const multa =
+        multas[i]
+
+      log(
+        `\n----- Boleto ${
+          i + 1
+        }/${multas.length}: AIT ${
+          multa.ait
+        } (${
+          multa.dataInfracao
+        }) -----`
+      )
+
+      const chave =
+        chaveMulta(
+          multa.ait,
+          multa.dataInfracao
+        )
+
+      if (
+        aitJaBaixados?.has(
+          chave
+        )
+      ) {
+        log(
+          'Multa já baixada anteriormente. Pulando download.'
+        )
+
+        multa.jaBaixada =
+          true
+
         continue
       }
 
       try {
-        await reabrirModalMultas(page)
+        if (!sessaoDownload) {
+          const [
+            userAgent,
+            cookieHeader,
+          ] = await Promise.all([
+            browser.userAgent(),
+            montarCookieHeader(
+              context
+            ),
+          ])
 
-        await marcarApenasUm(page, multa.ait)
-        await new Promise((r) => setTimeout(r, 400))
-
-        const marcado = await confirmarMarcado(page, multa.ait)
-        if (!marcado) {
-          logErr(`Checkbox do AIT ${multa.ait} não marcou. Pulando.`)
-          multa.erroEmissao = 'Não foi possível selecionar a multa no formulário.'
-          continue
+          sessaoDownload = {
+            userAgent,
+            cookieHeader,
+          }
         }
 
-        const resultadoVerOpcoes = await clicarVerOpcoes(page)
-        if (resultadoVerOpcoes === 'alerta') {
-          logErr(`DETRAN recusou emissão do boleto ${multa.ait}. Pulando.`)
-          multa.erroEmissao =
-            'DETRAN recusou a emissão do boleto (provavelmente vencimento em dia não útil).'
-          continue
+        await medirEtapa(
+          `processar boleto ${multa.ait}`,
+          async () => {
+            await processarMulta(
+              context!,
+              page,
+              placa,
+              multa,
+              storageDir,
+              sessaoDownload!
+            )
+          }
+        )
+
+        if (
+          multa.caminhoPdf &&
+          !primeiroPdfOk
+        ) {
+          primeiroPdfOk =
+            multa.caminhoPdf
         }
 
-        const pdfUrl = await abrirBoleto(browser, page)
-        if (!pdfUrl) {
-          logErr(`Boleto sem URL pro AIT ${multa.ait}. Pulando.`)
-          multa.erroEmissao = 'Não foi possível capturar a URL do PDF.'
-          continue
-        }
+        aitJaBaixados?.add(
+          chave
+        )
 
-        const caminho = await baixarPdfDeMulta(page, pdfUrl, placa, multa, storageDir)
-        if (caminho) {
-          multa.caminhoPdf = caminho
-          if (!primeiroPdfOk) primeiroPdfOk = caminho
-        } else {
-          logErr(`Falha ao salvar PDF da multa ${multa.ait}.`)
-          multa.erroEmissao = 'Falha ao salvar o PDF no disco.'
-        }
-      } catch (errMulta: any) {
-        logErr(`Erro no boleto da multa ${multa.ait}:`, errMulta?.message)
-        multa.erroEmissao = errMulta?.message || 'Erro inesperado na emissão.'
-        await salvarDebug(page, `falha-boleto-${multa.ait}`)
+        log(
+          `Boleto ${multa.ait} concluído com sucesso.`
+        )
+      } catch (error: unknown) {
+        const mensagem =
+          error instanceof Error
+            ? error.message
+            : 'Erro inesperado na emissão.'
+
+        logErr(
+          `Erro no boleto da multa ${multa.ait}:`,
+          mensagem
+        )
+
+        multa.erroEmissao =
+          mensagem
+
+        await salvarDebug(
+          page,
+          `falha-boleto-${multa.ait}`
+        )
       }
     }
 
-    log('======================================================')
-    const baixadas = multas.filter((m) => m.caminhoPdf).length
-    const puladas = multas.filter((m) => m.jaBaixada).length
-    const comErro = multas.filter((m) => m.erroEmissao)
+    log(
+      '======================================================'
+    )
 
-    log(`Resumo: ${baixadas} nova(s), ${puladas} já baixada(s), ${comErro.length} com erro`)
-    if (comErro.length) {
-      comErro.forEach((m) => log(`  ⚠ ${m.ait}: ${m.erroEmissao}`))
+    const baixadas =
+      multas.filter(
+        multa =>
+          !!multa.caminhoPdf
+      ).length
+
+    const puladas =
+      multas.filter(
+        multa =>
+          !!multa.jaBaixada
+      ).length
+
+    const comErro =
+      multas.filter(
+        multa =>
+          !!multa.erroEmissao
+      )
+
+    log(
+      `Resumo: ${baixadas} nova(s), ${puladas} já baixada(s), ${comErro.length} com erro`
+    )
+
+    if (
+      comErro.length > 0
+    ) {
+      for (
+        const multa of comErro
+      ) {
+        log(
+          `  ⚠ ${multa.ait}: ${multa.erroEmissao}`
+        )
+      }
     }
-    log('======================================================')
+
+    log(
+      '======================================================'
+    )
 
     return {
       sucesso: true,
       placa,
       chassi,
-      statusConsulta: 'COM_DEBITO',
+      statusConsulta:
+        'COM_DEBITO',
       tipoDebito,
       multas,
-      caminhoPdf: primeiroPdfOk,
+      caminhoPdf:
+        primeiroPdfOk,
     }
-  } catch (error: any) {
-    logErr('ERRO NÃO TRATADO:', error?.message)
-    logErr('Stack:', error?.stack)
+  } catch (error: unknown) {
+    const mensagem =
+      error instanceof Error
+        ? error.message
+        : String(error)
+
+    logErr(
+      'ERRO NÃO TRATADO:',
+      mensagem
+    )
+
+    logErr(
+      'Stack:',
+      error instanceof Error
+        ? error.stack
+        : undefined
+    )
+
     return {
       sucesso: false,
       placa,
       chassi,
-      statusConsulta: 'ERRO',
-      mensagemErro: error?.message || 'Erro desconhecido durante a automação.',
+      statusConsulta:
+        'ERRO',
+      mensagemErro:
+        mensagem ||
+        'Erro desconhecido durante a automação.',
     }
   } finally {
-    if (browser) {
-      log('Fechando browser.')
-      await browser.close().catch(() => {})
+    if (context) {
+      log(
+        'Fechando contexto do veículo...'
+      )
+
+      await context
+        .close()
+        .catch((error) => {
+          logErr(
+            'Erro ao fechar contexto:',
+            error instanceof Error
+              ? error.message
+              : String(error)
+          )
+        })
     }
-    log('Consulta finalizada.')
-    log('======================================================')
+
+    log(
+      'Consulta finalizada.'
+    )
+
+    log(
+      '======================================================'
+    )
   }
 }

@@ -65,36 +65,65 @@ export const infracaoRepository = {
     return db.prepare('SELECT * FROM infracoes WHERE id = ?').get(id) as InfracaoRecord | undefined
   },
 
-  listarOperacional(): InfracaoRecord[] {
-    const query = `
-      SELECT 
-        id,
-        task_id,
-        item_id,
-        placa,
-        condutor,
-        MAX(velocidade) AS velocidade,
-        limite_via,
-        DATE(created_at) AS data_ocorrencia,
-        created_at,
-        latitude,
-        longitude,
-        endereco,
-        pdf_path,
-        status
+listarOperacional({
+  busca,
+  limit,
+  offset,
+}: {
+  busca?: string
+  limit: number
+  offset: number
+}) {
+  // ----- WHERE compartilhado entre count e data -----
+  let whereClause = `
+    WHERE (
+      status IN ('PENDENTE', 'REGISTRADO')
+      AND created_at >= datetime('now', '-14 days')
+    ) OR (
+      status = 'ERRO'
+      AND created_at >= datetime('now', '-30 days')
+    )
+  `
+  const params: any[] = []
+
+  if (busca) {
+    whereClause += ' AND (condutor LIKE ? OR placa LIKE ? OR endereco LIKE ?)'
+    params.push(`%${busca}%`, `%${busca}%`, `%${busca}%`)
+  }
+
+  // ----- Count (precisa envolver num subselect porque o GROUP BY agrupa) -----
+  const countQuery = `
+    SELECT COUNT(*) as total FROM (
+      SELECT 1
       FROM infracoes
-      WHERE (
-        status IN ('PENDENTE', 'REGISTRADO') 
-        AND created_at >= datetime('now', '-14 days')
-      ) OR (
-        status = 'ERRO' 
-        AND created_at >= datetime('now', '-30 days')
-      )
+      ${whereClause}
       GROUP BY placa, DATE(created_at)
-      ORDER BY id DESC
-    `
-    return db.prepare(query).all() as InfracaoRecord[]
-  },
+    )
+  `
+  const totalRecords = (db.prepare(countQuery).get(...params) as { total: number }).total
+
+  // ----- Data paginada -----
+  const dataQuery = `
+    SELECT
+      id, task_id, item_id, placa, condutor,
+      MAX(velocidade) AS velocidade,
+      limite_via,
+      DATE(created_at) AS data_ocorrencia,
+      created_at, latitude, longitude, endereco, pdf_path, status
+    FROM infracoes
+    ${whereClause}
+    GROUP BY placa, DATE(created_at)
+    ORDER BY id DESC
+    LIMIT ? OFFSET ?
+  `
+  const data = db.prepare(dataQuery).all(...params, limit, offset) as InfracaoRecord[]
+
+  return {
+    data,
+    totalRecords,
+    totalPages: Math.max(1, Math.ceil(totalRecords / limit)),
+  }
+},
 
   listarHistorico(filters: HistoricoFilterParams) {
     const { busca, dataInicio, dataFim, page, limit } = filters

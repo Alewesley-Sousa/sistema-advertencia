@@ -6,21 +6,36 @@ import { infracaoRepository } from '../repositories/infracaoRepository'
 import { gerarPdfOficio } from '../services/pdfService'
 import { OficioTemplateData } from '../templates/oficioTemplate'
 import { sendResponse } from '../utils/response'
-import { parseParamId } from '../utils/requestHelpers'
+import { parseParamId, parsePaginationParams } from '../utils/requestHelpers'
 
 /**
  * 1. VISÃO OPERACIONAL (Curto Prazo / Painel Principal)
  */
-export function listarInfracoesOperacional(_req: Request, res: Response) {
+export function listarInfracoesOperacional(req: Request, res: Response) {
   try {
-    const infracoes = infracaoRepository.listarOperacional()
-    return sendResponse.success(res, infracoes)
+    const { busca } = req.query
+    const { page, limit, offset } = parsePaginationParams(req)
+
+    const { data, totalRecords, totalPages } = infracaoRepository.listarOperacional({
+      busca: busca as string | undefined,
+      limit,
+      offset,
+    })
+
+    return sendResponse.success(res, data, 200, {
+      page,
+      limit,
+      totalItems: totalRecords,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    })
   } catch (error) {
     console.error('[Listar Operacional Error]', error)
     return sendResponse.error(
-      res, 
-      'Erro ao buscar infrações operacionais.', 
-      500, 
+      res,
+      'Erro ao buscar infrações operacionais.',
+      500,
       'OPERATIONAL_FETCH_ERROR'
     )
   }
@@ -31,48 +46,26 @@ export function listarInfracoesOperacional(_req: Request, res: Response) {
  */
 export function listarHistorico(req: Request, res: Response) {
   try {
-    const { 
-      placa, 
-      busca, 
-      dataInicio, 
-      dataFim, 
-      page = '1', 
-      limit = '10' 
-    } = req.query
+    const { placa, busca, dataInicio, dataFim } = req.query
+    const { page, limit, offset } = parsePaginationParams(req)
 
-    const pageNum = parseInt(page as string, 10)
-    const limitNum = parseInt(limit as string, 10)
+    const termoBusca = (busca || placa) as string | undefined
 
-    if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1) {
-      return sendResponse.validationError(res, 'Parâmetros de paginação inválidos', [
-        { field: 'page', message: 'Deve ser um número inteiro maior ou igual a 1' },
-        { field: 'limit', message: 'Deve ser um número inteiro maior ou igual a 1' }
-      ])
-    }
-
-    const termoBusca = (busca || placa) as string
-    const result = infracaoRepository.listarHistorico({
+    const { data, totalRecords } = infracaoRepository.listarHistorico({
       busca: termoBusca,
-      dataInicio: dataInicio as string,
-      dataFim: dataFim as string,
-      page: pageNum,
-      limit: limitNum
+      dataInicio: dataInicio as string | undefined,
+      dataFim: dataFim as string | undefined,
+      page,
+      limit,
     })
 
-    return sendResponse.success(res, result.data, 200, {
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: result.totalRecords,
-        totalPages: result.totalPages
-      }
-    })
+    return sendResponse.paginate(res, data, page, limit, totalRecords)
   } catch (error) {
     console.error('[Listar Histórico Error]', error)
     return sendResponse.error(
-      res, 
-      'Erro ao buscar histórico de infrações.', 
-      500, 
+      res,
+      'Erro ao buscar histórico de infrações.',
+      500,
       'HISTORY_FETCH_ERROR'
     )
   }

@@ -25,8 +25,6 @@ function gerarPaginas(current: number, total: number): (number | '...')[] {
 }
 
 export function Pagination({ page, totalPages, total, onPageChange }: PaginationProps) {
-  if (totalPages <= 1) return null
-
   const paginas = gerarPaginas(page, totalPages)
 
   return (

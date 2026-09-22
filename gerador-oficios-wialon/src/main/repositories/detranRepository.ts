@@ -168,7 +168,7 @@ export const detranRepository = {
         caminho_pdf AS caminhoPdf,
         mensagem_erro AS mensagemErro,
         created_at,
-        updated_at AS updatedAt
+        updated_at
       FROM infracoes_detran
       ${whereClause}
       ORDER BY updated_at DESC, id DESC

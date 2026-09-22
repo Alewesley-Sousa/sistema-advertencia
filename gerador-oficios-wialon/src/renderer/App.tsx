@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import {
-  listarInfracoes,
+  listarInfracoesOperacional,
   enviarEmailInfracao,
   gerarPdfInfracao,
   type Infracao,
@@ -39,7 +39,7 @@ export function App() {
   const carregarInfracoes = async () => {
     try {
       setLoading(true)
-      const dados: any = await listarInfracoes()
+      const dados: any = await listarInfracoesOperacional()
 
       // Aceita tanto array puro quanto { data: [...] }
       const lista: Infracao[] = Array.isArray(dados)

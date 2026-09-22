@@ -5,12 +5,14 @@ import { Search, Upload } from 'lucide-react'
 
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { Pagination } from '../components/ui/Pagination'
 
 import { DetranForm } from '../features/detran/components/DetranForm'
 import { LoteUploadModal } from '../features/detran/components/LoteUploadModal'
 import { DetranTable } from '../features/detran/components/DetranTable'
 import { DetranMultasModal } from '../features/detran/components/DetranMultasModal'
 import { DetranProgressModal } from '../features/detran/components/DetranProgressModal'
+import { DetranHistoricoFilters } from '../features/detran/components/DetranHistoricoFilters'
 
 import { useDetranHistorico } from '../features/detran/hooks/useDetranHistorico'
 import { useConsultaDetran } from '../features/detran/hooks/useConsultaDetran'
@@ -23,7 +25,19 @@ export function ConsultaDetranPage() {
   const [placaSelecionada, setPlacaSelecionada] = useState<string | undefined>()
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
 
-  const { consultas, carregando, recarregar } = useDetranHistorico()
+  const {
+    consultas,
+    carregando,
+    recarregar,
+    pagina,
+    setPagina,
+    meta,
+    busca,
+    filtroStatus,
+    handleBuscaChange,
+    handleFiltroStatusChange,
+  } = useDetranHistorico()
+
   const { consultar, consultando } = useConsultaDetran(recarregar)
   const { processarArquivo, progresso, processando, fechar } = useLoteDetran(recarregar)
 
@@ -95,10 +109,25 @@ export function ConsultaDetranPage() {
         disabled={processando}
       />
 
-      {/* ================= Tabela ================= */}
+      {/* ================= Tabela + Filtros + Paginação ================= */}
       <Card padding="none" className="overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+        {/* Filtros */}
+        <DetranHistoricoFilters
+          busca={busca}
+          onBuscaChange={handleBuscaChange}
+          loadingBusca={carregando}
+          filtroStatus={filtroStatus}
+          onFiltroStatusChange={handleFiltroStatusChange}
+        />
+
+        {/* Contador no canto */}
+        <div className="px-4 pt-3 pb-1 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-800">Resultados Recentes</h2>
+          {meta && meta.totalItems > 0 && (
+            <span className="text-xs text-slate-500">
+              {meta.totalItems} veículo{meta.totalItems === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
 
         <DetranTable
@@ -106,6 +135,15 @@ export function ConsultaDetranPage() {
           carregando={carregando}
           onVerMultas={handleVerMultas}
         />
+
+        {meta && meta.totalPages > 1 && (
+          <Pagination
+            page={pagina}
+            totalPages={meta.totalPages}
+            total={meta.totalItems}
+            onPageChange={setPagina}
+          />
+        )}
       </Card>
 
       {/* ================= Modais ================= */}
