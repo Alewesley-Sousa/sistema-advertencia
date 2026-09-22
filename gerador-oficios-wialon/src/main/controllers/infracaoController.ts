@@ -1,56 +1,33 @@
 import { Request, Response } from 'express'
 import fs from 'node:fs'
-import { db } from '../database/db'
 import { enviarOficioEmail } from '../services/emailService'
 import { validarExcessoVelocidade } from '../services/wialon'
 import { infracaoRepository } from '../repositories/infracaoRepository'
+import { gerarPdfOficio } from '../services/pdfService'
+import { OficioTemplateData } from '../templates/oficioTemplate'
+import { sendResponse } from '../utils/response'
+import { parseParamId } from '../utils/requestHelpers'
 
 /**
  * 1. VISÃO OPERACIONAL (Curto Prazo / Painel Principal)
- * Retorna o maior pico de velocidade por placa/dia nos últimos 14 dias (PENDENTE/REGISTRADO)
- * mais os erros de processamento dos últimos 30 dias.
  */
 export function listarInfracoesOperacional(_req: Request, res: Response) {
   try {
-    const query = `
-      SELECT 
-        id,
-        task_id,
-        item_id,
-        placa,
-        condutor,
-        MAX(velocidade) AS velocidade,
-        limite_via,
-        DATE(created_at) AS data_ocorrencia,
-        created_at,
-        latitude,
-        longitude,
-        endereco,
-        pdf_path,
-        status
-      FROM infracoes
-      WHERE (
-        status IN ('PENDENTE', 'REGISTRADO') 
-        AND created_at >= datetime('now', '-14 days')
-      ) OR (
-        status = 'ERRO' 
-        AND created_at >= datetime('now', '-30 days')
-      )
-      GROUP BY placa, DATE(created_at)
-      ORDER BY id DESC
-    `
-    const stmt = db.prepare(query)
-    const infracoes = stmt.all()
-    return res.json(infracoes)
+    const infracoes = infracaoRepository.listarOperacional()
+    return sendResponse.success(res, infracoes)
   } catch (error) {
     console.error('[Listar Operacional Error]', error)
-    return res.status(500).json({ error: 'Erro ao buscar infrações operacionais.' })
+    return sendResponse.error(
+      res, 
+      'Erro ao buscar infrações operacionais.', 
+      500, 
+      'OPERATIONAL_FETCH_ERROR'
+    )
   }
 }
 
 /**
  * 2. VISÃO HISTÓRICA (Longo Prazo / Auditoria)
- * Retorna o histórico de ofícios com suporte a busca genérica (condutor, placa, endereço) e datas.
  */
 export function listarHistorico(req: Request, res: Response) {
   try {
@@ -63,111 +40,166 @@ export function listarHistorico(req: Request, res: Response) {
       limit = '10' 
     } = req.query
 
-    const pageNum = Math.max(1, parseInt(page as string, 10))
-    const limitNum = Math.max(1, parseInt(limit as string, 10))
-    const offset = (pageNum - 1) * limitNum
+    const pageNum = parseInt(page as string, 10)
+    const limitNum = parseInt(limit as string, 10)
 
-    let whereClause = "WHERE status IN ('GERADO', 'ENVIADO')"
-    const params: any[] = []
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1) {
+      return sendResponse.validationError(res, 'Parâmetros de paginação inválidos', [
+        { field: 'page', message: 'Deve ser um número inteiro maior ou igual a 1' },
+        { field: 'limit', message: 'Deve ser um número inteiro maior ou igual a 1' }
+      ])
+    }
 
-    // 1. Filtro genérico: condutor, placa ou endereço (campo 'busca' do frontend)
     const termoBusca = (busca || placa) as string
-    if (termoBusca) {
-      whereClause += " AND (condutor LIKE ? OR placa LIKE ? OR endereco LIKE ?)"
-      params.push(`%${termoBusca}%`, `%${termoBusca}%`, `%${termoBusca}%`)
-    }
+    const result = infracaoRepository.listarHistorico({
+      busca: termoBusca,
+      dataInicio: dataInicio as string,
+      dataFim: dataFim as string,
+      page: pageNum,
+      limit: limitNum
+    })
 
-    // 2. Filtro de Intervalo de Datas
-    if (dataInicio) {
-      whereClause += " AND DATE(created_at) >= DATE(?)"
-      params.push(dataInicio)
-    }
-
-    if (dataFim) {
-      whereClause += " AND DATE(created_at) <= DATE(?)"
-      params.push(dataFim)
-    }
-
-    // Consulta do Total para Paginação
-    const countQuery = `SELECT COUNT(*) as total FROM infracoes ${whereClause}`
-    const totalRecords = (db.prepare(countQuery).get(...params) as { total: number }).total
-
-    // Consulta dos Dados com Paginador
-    const dataQuery = `
-      SELECT * FROM infracoes 
-      ${whereClause} 
-      ORDER BY id DESC 
-      LIMIT ? OFFSET ?
-    `
-    const data = db.prepare(dataQuery).all(...params, limitNum, offset)
-
-    return res.json({
-      data,
+    return sendResponse.success(res, result.data, 200, {
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: totalRecords,
-        totalPages: Math.ceil(totalRecords / limitNum)
+        total: result.totalRecords,
+        totalPages: result.totalPages
       }
     })
   } catch (error) {
     console.error('[Listar Histórico Error]', error)
-    return res.status(500).json({ error: 'Erro ao buscar histórico de infrações.' })
+    return sendResponse.error(
+      res, 
+      'Erro ao buscar histórico de infrações.', 
+      500, 
+      'HISTORY_FETCH_ERROR'
+    )
   }
 }
 
 /**
- * Servir o arquivo PDF da infração
+ * 3. GERAR OFÍCIO MANUALMENTE
+ */
+export async function gerarOficioInfracao(req: Request, res: Response) {
+  try {
+    const idNumerico = parseParamId(req, res)
+    if (!idNumerico) return
+
+    const infracao = infracaoRepository.buscarPorId(idNumerico)
+    if (!infracao) {
+      return sendResponse.error(res, 'Infração não encontrada.', 404, 'INFRACAO_NOT_FOUND')
+    }
+
+    const eExcessoVelocidade = validarExcessoVelocidade(infracao.velocidade, infracao.limite_via)
+    if (!eExcessoVelocidade) {
+      return sendResponse.validationError(res, 'Regra de negócio violada para geração do ofício.', [
+        { 
+          field: 'velocidade', 
+          message: `A velocidade registrada (${infracao.velocidade} km/h) não excede o limite da via (${infracao.limite_via} km/h).` 
+        }
+      ])
+    }
+
+    if (new Date(infracao.created_at) > new Date()) {
+      return sendResponse.validationError(res, 'Data da ocorrência inconsistente.', [
+        { field: 'created_at', message: 'Não é possível gerar ofício para infrações com data futura.' }
+      ])
+    }
+
+    const dadosTemplate: OficioTemplateData = {
+      id: infracao.id,
+      placa: infracao.placa,
+      condutor: infracao.condutor || 'NÃO INFORMADO',
+      velocidade: infracao.velocidade,
+      limite_via: infracao.limite_via,
+      data_hora: infracao.created_at,
+      endereco: infracao.endereco || 'Endereço não informado',
+    }
+
+    const pdfPath = await gerarPdfOficio(dadosTemplate)
+
+    infracaoRepository.marcarComoGerado(idNumerico, pdfPath)
+
+    return sendResponse.success(res, {
+      message: 'Ofício gerado com sucesso!',
+      infracaoId: idNumerico,
+      pdfPath
+    })
+  } catch (error: any) {
+    console.error('[Gerar Ofício Error]', error)
+    return sendResponse.error(
+      res, 
+      'Erro ao gerar o arquivo PDF do ofício.', 
+      500, 
+      'PDF_GENERATION_ERROR'
+    )
+  }
+}
+
+/**
+ * 4. DOWNLOAD / VISUALIZAÇÃO DO PDF
  */
 export function baixarPdfInfracao(req: Request, res: Response) {
   try {
-    const { id } = req.params
-    const stmt = db.prepare('SELECT pdf_path, placa FROM infracoes WHERE id = ?')
-    const infracao = stmt.get(id) as { pdf_path?: string; placa?: string } | undefined
+    const idNumerico = parseParamId(req, res)
+    if (!idNumerico) return
+
+    const infracao = infracaoRepository.buscarPorId(idNumerico)
 
     if (!infracao || !infracao.pdf_path || !fs.existsSync(infracao.pdf_path)) {
-      return res.status(404).json({ error: 'Arquivo PDF não encontrado no servidor.' })
+      return sendResponse.error(
+        res, 
+        'Arquivo PDF não encontrado no servidor ou ainda não foi gerado.', 
+        404, 
+        'FILE_NOT_FOUND'
+      )
     }
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `inline; filename="oficio_${infracao.placa}.pdf"`)
 
-    const fileStream = fs.createReadStream(infracao.pdf_path)
-    fileStream.pipe(res)
+    return fs.createReadStream(infracao.pdf_path).pipe(res)
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao tentar recuperar o arquivo PDF.' })
+    console.error('[Baixar PDF Error]', error)
+    return sendResponse.error(
+      res, 
+      'Erro ao tentar recuperar o arquivo PDF.', 
+      500, 
+      'PDF_FETCH_ERROR'
+    )
   }
 }
 
 /**
- * Enviar E-mail de Ofício de Infração
+ * 5. ENVIAR E-MAIL COM OFÍCIO ANEXADO
  */
 export async function enviarEmailInfracao(req: Request, res: Response) {
   try {
-    const { id } = req.params
+    const idNumerico = parseParamId(req, res)
+    if (!idNumerico) return
 
-    // 1. Busca os dados da infração registrada no banco
-    const infracao = infracaoRepository.buscarPorId(Number(id))
-
+    const infracao = infracaoRepository.buscarPorId(idNumerico)
     if (!infracao) {
-      return res.status(404).json({ error: 'Infração não encontrada.' })
+      return sendResponse.error(res, 'Infração não encontrada.', 404, 'INFRACAO_NOT_FOUND')
     }
 
-    // 2. Valida se a velocidade realmente ultrapassa o limite da via
     const eExcessoVelocidade = validarExcessoVelocidade(infracao.velocidade, infracao.limite_via)
-
     if (!eExcessoVelocidade) {
-      return res.status(400).json({
-        error: 'Registro inválido para envio: a velocidade registrada não excede o limite da via.'
-      })
+      return sendResponse.validationError(res, 'Registro inválido para envio por e-mail.', [
+        { 
+          field: 'velocidade', 
+          message: 'A velocidade registrada não excede o limite estipulado da via.' 
+        }
+      ])
     }
 
-    // 3. Valida se o PDF já foi gerado
-    if (!infracao.pdf_path) {
-      return res.status(400).json({ error: 'O PDF desta infração ainda não foi gerado.' })
+    if (!infracao.pdf_path || !fs.existsSync(infracao.pdf_path)) {
+      return sendResponse.validationError(res, 'Pré-requisito pendente para envio de e-mail.', [
+        { field: 'pdf_path', message: 'O PDF desta infração ainda não foi gerado ou o arquivo não existe.' }
+      ])
     }
 
-    // 4. Dispara o e-mail utilizando o serviço
     await enviarOficioEmail({
       condutor: infracao.condutor || 'Não informado',
       placa: infracao.placa,
@@ -177,14 +209,16 @@ export async function enviarEmailInfracao(req: Request, res: Response) {
       pdfPath: infracao.pdf_path
     })
 
-    // 5. Atualiza o status da infração para ENVIADO
     infracaoRepository.marcarComoEnviado(infracao.id)
 
-    return res.json({ message: 'E-mail enviado com sucesso!' })
+    return sendResponse.success(res, { message: 'E-mail enviado com sucesso!' })
   } catch (error: any) {
     console.error('[Email Action Error]', error)
-    return res.status(500).json({ 
-      error: error.message || 'Falha ao realizar o disparo do e-mail.' 
-    })
+    return sendResponse.error(
+      res, 
+      error.message || 'Falha ao realizar o disparo do e-mail.', 
+      500, 
+      'EMAIL_SEND_FAILED'
+    )
   }
 }

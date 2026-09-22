@@ -1,20 +1,31 @@
-import { useState } from 'react'
-import { ShieldAlert, RefreshCw, FileText, History, Calendar, Loader2 } from 'lucide-react'
-import { type Infracao, sincronizarDadosWialon } from '../services/api'
+import { useMemo, useState } from 'react'
+import {
+  ShieldAlert,
+  RefreshCw,
+  FileText,
+  History,
+} from 'lucide-react'
+import type { Infracao } from '../services/infracoes'
 
-// Importação dos componentes isolados
-import { InfracaoTableRow } from '../components/InfracaoTableRow'
-import { SearchInput } from '../components/SearchInput'
-import { Pagination } from '../components/Pagination'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { SearchInput } from '../components/ui/SearchInput'
+import { Pagination } from '../components/ui/Pagination'
 
-// Importação do custom hook
-import { useInfracoesHistorico } from '../hooks/useInfracoesHistorico'
+import { InfracaoTable } from '../features/infracoes/components/InfracaoTable'
+import { InfracaoHistoricoFilters } from '../features/infracoes/components/InfracaoHistoricoFilters'
+import { useInfracoesHistorico } from '../features/infracoes/hooks/useInfracoesHistorico'
+import { useInfracoesOrdenacao } from '../features/infracoes/hooks/useInfracoesOrdenacao'
+import { useGerarPdfInfracao } from '../features/infracoes/hooks/useGerarPdfInfracao'
+import { useSincronizarWialon } from '../features/infracoes/hooks/useSincronizarWialon'
 
 interface InfracoesPageProps {
   infracoesLocais: Infracao[]
   loadingPdfId: number | null
+  gerandoPdfId?: number | null
   enviandoEmailId: number | null
   onAbrirPdf: (id: number, placa: string, condutor: string) => void
+  onGerarPdf?: (id: number) => void
   onEnviarEmail: (id: number) => void
   onAtualizarStatus: () => void
 }
@@ -22,16 +33,19 @@ interface InfracoesPageProps {
 export function InfracoesPage({
   infracoesLocais,
   loadingPdfId,
+  gerandoPdfId: gerandoPdfIdProp,
   enviandoEmailId,
   onAbrirPdf,
+  onGerarPdf,
   onEnviarEmail,
-  onAtualizarStatus
+  onAtualizarStatus,
 }: InfracoesPageProps) {
+  // ---- Estado de UI ----
   const [abaAtiva, setAbaAtiva] = useState<'OPERACIONAL' | 'HISTORICO'>('OPERACIONAL')
   const [filtroOperacional, setFiltroOperacional] = useState('')
-  const [sincronizando, setSincronizando] = useState(false)
+  const [filtroStatus, setFiltroStatus] = useState('TODOS')
 
-  // Custom hook trazendo também os estados e setters de data
+  // ---- Hooks de domínio ----
   const {
     data: historicoData,
     busca: buscaHistorico,
@@ -41,37 +55,57 @@ export function InfracoesPage({
     setDataInicio,
     setDataFim,
     setPagina: setPaginaHistorico,
-    handleBuscaChange: handleBuscaHistoricoChange
+    handleBuscaChange: handleBuscaHistoricoChange,
+    carregarHistorico,
   } = useInfracoesHistorico(abaAtiva)
 
-  // Handler para acionar a sincronização ativa via API
-  const handleSincronizar = async () => {
-    try {
-      setSincronizando(true)
-      await sincronizarDadosWialon()
-      // Atualiza os dados da interface
-      onAtualizarStatus()
-    } catch (error) {
-      console.error('[InfracoesPage] Falha ao sincronizar dados com a Wialon:', error)
-    } finally {
-      setSincronizando(false)
-    }
-  }
+  const { campoOrdenacao, direcaoOrdenacao, handleOrdenar, ordenarLista } =
+    useInfracoesOrdenacao()
 
-  // Filtro local simples para a aba Operacional
-  const infracoesOperacionaisFiltradas = infracoesLocais.filter(item => {
-    const termo = filtroOperacional.toLowerCase()
-    return (
-      item.condutor.toLowerCase().includes(termo) ||
-      item.placa.toLowerCase().includes(termo) ||
-      item.id.toString().includes(termo)
-    )
+  const { gerarPdf, gerandoPdfId } = useGerarPdfInfracao({
+    onGerarPdfExterno: onGerarPdf,
+    gerandoPdfIdExterno: gerandoPdfIdProp,
+    onSucesso: () => {
+      onAtualizarStatus()
+      if (abaAtiva === 'HISTORICO') carregarHistorico()
+    },
   })
+
+  const { sincronizar, sincronizando } = useSincronizarWialon(onAtualizarStatus)
+
+  // ---- Listas derivadas ----
+  const infracoesSeguras: Infracao[] = Array.isArray(infracoesLocais) ? infracoesLocais : []
+  const historicoLista: Infracao[] = Array.isArray(historicoData?.data) ? historicoData.data : []
+
+  const infracoesOperacionais = useMemo(() => {
+    const termo = filtroOperacional.toLowerCase().trim()
+    const filtradas = infracoesSeguras.filter(
+      (item) =>
+        !termo ||
+        (item.condutor || '').toLowerCase().includes(termo) ||
+        (item.placa || '').toLowerCase().includes(termo) ||
+        String(item.id ?? '').includes(termo)
+    )
+    return ordenarLista(filtradas)
+  }, [infracoesSeguras, filtroOperacional, ordenarLista])
+
+  const historicoOrdenado = useMemo(() => {
+    const filtrados = historicoLista.filter((item) => {
+      const statusItem = (item as any).status || (item as any).status_envio || ''
+      return filtroStatus === 'TODOS' || statusItem === filtroStatus
+    })
+    return ordenarLista(filtrados)
+  }, [historicoLista, filtroStatus, ordenarLista])
+
+  const limparFiltroData = () => {
+    setDataInicio('')
+    setDataFim('')
+  }
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      {/* ===== Cabeçalho ===== */}
+      <Card className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <ShieldAlert className="w-7 h-7 text-rose-600" />
@@ -82,37 +116,31 @@ export function InfracoesPage({
           </p>
         </div>
 
-        <button
-          onClick={handleSincronizar}
-          disabled={sincronizando}
-          className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition border border-slate-200 disabled:opacity-50"
-        >
-          {sincronizando ? (
-            <Loader2 className="w-4 h-4 animate-spin text-cyan-600" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
+        <Button variant="secondary" onClick={sincronizar} loading={sincronizando}>
+          {!sincronizando && <RefreshCw className="w-4 h-4" />}
           {sincronizando ? 'Sincronizando...' : 'Sincronizar Dados'}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
-      {/* Navegação por Abas */}
+      {/* ===== Abas ===== */}
       <div className="flex border-b border-slate-200 gap-2">
         <button
+          type="button"
           onClick={() => setAbaAtiva('OPERACIONAL')}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition ${
+          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition cursor-pointer ${
             abaAtiva === 'OPERACIONAL'
               ? 'border-cyan-600 text-cyan-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <FileText className="w-4 h-4" />
-          Operacional ({infracoesLocais.length})
+          Operacional ({infracoesSeguras.length})
         </button>
 
         <button
+          type="button"
           onClick={() => setAbaAtiva('HISTORICO')}
-          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition ${
+          className={`flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 transition cursor-pointer ${
             abaAtiva === 'HISTORICO'
               ? 'border-cyan-600 text-cyan-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -123,9 +151,9 @@ export function InfracoesPage({
         </button>
       </div>
 
-      {/* CONTEÚDO DA ABA OPERACIONAL */}
+      {/* ===== ABA OPERACIONAL ===== */}
       {abaAtiva === 'OPERACIONAL' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden space-y-4">
+        <Card padding="none" className="overflow-hidden">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
             <SearchInput
               placeholder="Filtrar por condutor, placa ou ID..."
@@ -134,128 +162,63 @@ export function InfracoesPage({
             />
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/80">
-                  <th className="py-3 px-5">ID / Data</th>
-                  <th className="py-3 px-5">Condutor / Placa</th>
-                  <th className="py-3 px-5">Velocidade</th>
-                  <th className="py-3 px-5">Endereço</th>
-                  <th className="py-3 px-5">Status</th>
-                  <th className="py-3 px-5 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
-                {infracoesOperacionaisFiltradas.length > 0 ? (
-                  infracoesOperacionaisFiltradas.map((item) => (
-                    <InfracaoTableRow
-                      key={item.id}
-                      item={item}
-                      onAbrirPdf={onAbrirPdf}
-                      onEnviarEmail={onEnviarEmail}
-                      loadingPdfId={loadingPdfId}
-                      enviandoEmailId={enviandoEmailId}
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
-                      Nenhuma infração operacional encontrada.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <InfracaoTable
+            lista={infracoesOperacionais}
+            emptyMessage="Nenhuma infração operacional encontrada."
+            campoOrdenacao={campoOrdenacao}
+            direcaoOrdenacao={direcaoOrdenacao}
+            onOrdenar={handleOrdenar}
+            onAbrirPdf={onAbrirPdf}
+            onGerarPdf={gerarPdf}
+            onEnviarEmail={onEnviarEmail}
+            loadingPdfId={loadingPdfId}
+            gerandoPdfId={gerandoPdfId}
+            enviandoEmailId={enviandoEmailId}
+          />
+        </Card>
       )}
 
-      {/* CONTEÚDO DA ABA HISTÓRICO */}
+      {/* ===== ABA HISTÓRICO ===== */}
       {abaAtiva === 'HISTORICO' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-            <div className="flex-1">
-              <SearchInput
-                placeholder="Buscar no histórico por condutor, placa ou local..."
-                value={buscaHistorico}
-                onChange={handleBuscaHistoricoChange}
-                loading={loadingHistorico}
-              />
-            </div>
+        <Card padding="none" className="overflow-hidden">
+          <InfracaoHistoricoFilters
+            busca={buscaHistorico}
+            onBuscaChange={handleBuscaHistoricoChange}
+            loadingBusca={loadingHistorico}
+            filtroStatus={filtroStatus}
+            onFiltroStatusChange={setFiltroStatus}
+            dataInicio={dataInicio}
+            dataFim={dataFim}
+            onDataInicioChange={setDataInicio}
+            onDataFimChange={setDataFim}
+            onLimparDatas={limparFiltroData}
+          />
 
-            {/* Filtros por intervalo de Data */}
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="font-medium text-slate-400">De:</span>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className="outline-none text-slate-700 font-semibold bg-transparent"
-                />
-              </div>
+          <InfracaoTable
+            lista={historicoOrdenado}
+            loading={loadingHistorico}
+            loadingMessage="Carregando histórico..."
+            emptyMessage="Nenhum registro encontrado no histórico."
+            campoOrdenacao={campoOrdenacao}
+            direcaoOrdenacao={direcaoOrdenacao}
+            onOrdenar={handleOrdenar}
+            onAbrirPdf={onAbrirPdf}
+            onGerarPdf={gerarPdf}
+            onEnviarEmail={onEnviarEmail}
+            loadingPdfId={loadingPdfId}
+            gerandoPdfId={gerandoPdfId}
+            enviandoEmailId={enviandoEmailId}
+          />
 
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="font-medium text-slate-400">Até:</span>
-                <input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className="outline-none text-slate-700 font-semibold bg-transparent"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/80">
-                  <th className="py-3 px-5">ID / Data</th>
-                  <th className="py-3 px-5">Condutor / Placa</th>
-                  <th className="py-3 px-5">Velocidade</th>
-                  <th className="py-3 px-5">Endereço</th>
-                  <th className="py-3 px-5">Status</th>
-                  <th className="py-3 px-5 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
-                {historicoData && historicoData.data.length > 0 ? (
-                  historicoData.data.map((item) => (
-                    <InfracaoTableRow
-                      key={item.id}
-                      item={item}
-                      onAbrirPdf={onAbrirPdf}
-                      onEnviarEmail={onEnviarEmail}
-                      loadingPdfId={loadingPdfId}
-                      enviandoEmailId={enviandoEmailId}
-                      textoBotaoEmail="Reenviar"
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
-                      {loadingHistorico ? 'Carregando histórico...' : 'Nenhum registro encontrado no histórico.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginação do Histórico */}
-          {historicoData && (
+          {historicoData?.pagination && (
             <Pagination
-              page={historicoData.pagination.page}
-              totalPages={historicoData.pagination.totalPages}
-              total={historicoData.pagination.total}
+              page={historicoData.pagination.page ?? 1}
+              totalPages={historicoData.pagination.totalPages ?? 1}
+              total={historicoData.pagination.total ?? 0}
               onPageChange={setPaginaHistorico}
             />
           )}
-        </div>
+        </Card>
       )}
     </div>
   )

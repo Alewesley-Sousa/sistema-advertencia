@@ -90,8 +90,8 @@ function resolverDestinatarios(para?: string | string[]): string[] {
     return emailsBanco
   }
 
-  // 3. Fallbacks das variáveis de ambiente / Padrão
-  const emailEnv = process.env.EMAIL_RH || process.env.SMTP_USER || 'rh@empresa.com.br'
+  // 3. Fallbacks das variáveis de ambiente / Padrão ajustados para Operações
+  const emailEnv = process.env.EMAIL_OPERACOES || process.env.SMTP_USER || 'operacoes@empresa.com.br'
   return [emailEnv.trim()]
 }
 
@@ -126,18 +126,18 @@ export async function enviarOficioEmail({
   // 4. Montagem da mensagem
   const mailOptions = {
     from: `"${process.env.SMTP_FROM_NAME || 'Gestão de Frotas'}" <${process.env.SMTP_USER || 'no-reply@frotas.com'}>`,
-    to: destinatariosFinais, // O Nodemailer aceita diretamente um Array de Strings
-    subject: `[Solicitação de Advertência] Excesso de Velocidade - Veículo ${placa} (${condutor})`,
+    to: destinatariosFinais,
+    subject: `[Notificação Operacional] Excesso de Velocidade - Veículo ${placa} (${condutor})`,
 
-    text: `Prezados da Equipe de RH,\n\n` +
-          `Solicitamos a emissão e aplicação da advertência formal ao motorista abaixo citado, devido à infração de excesso de velocidade registrada pela telemetria Wialon.\n\n` +
+    text: `Prezados da Equipe de Operações,\n\n` +
+          `Comunicamos o registro de infração por excesso de velocidade referente ao condutor abaixo relacionado, identificada via telemetria Wialon.\n\n` +
           `DADOS DA OCORRÊNCIA:\n` +
           `- Condutor / Matrícula: ${condutor}\n` +
           `- Veículo / Placa: ${placa}\n` +
           `- Velocidade Registrada: ${velocidadeRegistrada} km/h\n` +
           `- Limite Tolerado da Via: ${velocidadeLimite} km/h\n` +
           `- Data/Hora: ${dataHora}\n\n` +
-          `O Ofício de Advertência oficial em formato PDF encontra-se em anexo a este e-mail para impressão e colheita da assinatura do colaborador.\n\n` +
+          `O Ofício de Advertência oficial em formato PDF encontra-se em anexo a este e-mail para ciência e tratativas operacionais junto ao colaborador.\n\n` +
           `Atenciosamente,\nSetor de Gestão de Frotas e Transporte`,
 
     html: `
@@ -146,7 +146,7 @@ export async function enviarOficioEmail({
         <!-- Cabeçalho -->
         <div style="background-color: #0f172a; padding: 20px; text-align: center;">
           <h2 style="color: #ffffff; margin: 0; font-size: 18px; letter-spacing: 0.5px;">
-            Encaminhamento de Advertência Disciplinar
+            Notificação de Excesso de Velocidade
           </h2>
           <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 12px;">
             Setor de Gestão de Frotas &bull; Sistema Automático
@@ -156,10 +156,10 @@ export async function enviarOficioEmail({
         <!-- Conteúdo Principal -->
         <div style="padding: 24px;">
           <p style="font-size: 14px; line-height: 1.5; color: #334155; margin-top: 0;">
-            Prezada equipe do <strong>Recursos Humanos (RH)</strong>,
+            Prezada equipe do <strong>Setor de Operações</strong>,
           </p>
           <p style="font-size: 14px; line-height: 1.5; color: #334155;">
-            Solicitamos a aplicação do termo de advertência ao condutor abaixo relacionado, referente à infração por <strong>excesso de velocidade</strong> identificada via telemetria Wialon.
+            Notificamos a ocorrência de infração por <strong>excesso de velocidade</strong> cometida pelo condutor abaixo relacionado, identificada via telemetria Wialon.
           </p>
 
           <!-- Tabela de Detalhes -->
@@ -186,10 +186,10 @@ export async function enviarOficioEmail({
             </tr>
           </table>
 
-          <!-- Card de Orientação ao RH -->
+          <!-- Card de Orientação às Operações -->
           <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
             <p style="margin: 0; font-size: 13px; color: #991b1b; line-height: 1.4;">
-              <strong>Ação necessária:</strong> O <strong>Ofício de Advertência (PDF)</strong> oficial encontra-se em anexo nesta mensagem. Por favor, realizem o encaminhamento, colheita de assinatura do colaborador e arquivamento em prontuário.
+              <strong>Ação necessária:</strong> O <strong>Ofício de Advertência (PDF)</strong> encontra-se anexado a este e-mail. Solicita-se o alinhamento com a gestão operacional para colheita da assinatura do condutor e devidas orientações relativas à conduta em trânsito.
             </p>
           </div>
 

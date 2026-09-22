@@ -15,8 +15,9 @@ export function createInfracoesTable() {
       longitude REAL,
       endereco TEXT,
       pdf_path TEXT,
-      status TEXT CHECK(status IN ('PENDENTE', 'GERADO', 'ENVIADO', 'ERRO')) DEFAULT 'PENDENTE',
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      status TEXT CHECK(status IN ('PENDENTE', 'REGISTRADO', 'GERADO', 'ENVIADO', 'ERRO', 'DESCARTADO', 'IGNORADO_MENOR_GRAVIDADE')) DEFAULT 'PENDENTE',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `)
 }

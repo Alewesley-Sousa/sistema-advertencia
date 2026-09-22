@@ -3,7 +3,8 @@ import {
   listarInfracoesOperacional, 
   listarHistorico,
   baixarPdfInfracao, 
-  enviarEmailInfracao 
+  enviarEmailInfracao, 
+  gerarOficioInfracao
 } from '../controllers/infracaoController'
 
 export const infracaoRoutes = Router()
@@ -19,3 +20,6 @@ infracaoRoutes.get('/:id/pdf', baixarPdfInfracao)
 
 // Disparo manual do e-mail via frontend
 infracaoRoutes.post('/:id/enviar-email', enviarEmailInfracao)
+
+// Geração manual do PDF via frontend
+infracaoRoutes.post('/:id/gerar-pdf', gerarOficioInfracao)

@@ -1,14 +1,35 @@
+/**
+ * @fileoverview Controller para gerenciamento de configurações do sistema.
+ * 
+ * Finalidade:
+ * Expor os endpoints REST da API para leitura, criação/atualização (upsert)
+ * e remoção de pares chave-valor de configuração persistidos no banco de dados
+ * (ex: tokens da API Wialon, parâmetros de busca, limites operacionais).
+ * 
+ * Endpoints gerenciados:
+ * - GET /configuracoes         -> Lista todas as configurações
+ * - POST /configuracoes        -> Salva ou atualiza uma configuração (chave, valor)
+ * - DELETE /configuracoes/:chave -> Remove uma configuração existente
+ */
+
 import { Request, Response } from 'express'
 import { configuracaoRepository } from '../repositories/configuracaoRepository'
+import { sendResponse } from '../utils/response'
+import { parseStringParam } from '../utils/requestHelpers'
 
 export const configuracoesController = {
   listar: (_req: Request, res: Response) => {
     try {
       const configs = configuracaoRepository.listar()
-      return res.status(200).json(configs)
+      return sendResponse.success(res, configs)
     } catch (error) {
       console.error('[ConfigController] Erro ao listar:', error)
-      return res.status(500).json({ error: 'Erro ao buscar configurações.' })
+      return sendResponse.error(
+        res,
+        'Erro ao buscar configurações.',
+        500,
+        'CONFIG_FETCH_ERROR'
+      )
     }
   },
 
@@ -17,35 +38,59 @@ export const configuracoesController = {
       const { chave, valor } = req.body
 
       if (!chave || valor === undefined || valor === null) {
-        return res.status(400).json({ error: 'Campos "chave" e "valor" são obrigatórios.' })
+        return sendResponse.validationError(res, 'Dados inválidos para a configuração.', [
+          { field: 'chave', message: 'O campo "chave" é obrigatório.' },
+          { field: 'valor', message: 'O campo "valor" é obrigatório.' }
+        ])
       }
 
-      configuracaoRepository.salvar(String(chave), String(valor))
-      return res.status(200).json({ chave, valor })
+      const chaveStr = String(chave).trim()
+      const valorStr = String(valor).trim()
+
+      if (!chaveStr) {
+        return sendResponse.validationError(res, 'A chave não pode ser vazia.', [
+          { field: 'chave', message: 'Informe um identificador válido para a chave.' }
+        ])
+      }
+
+      configuracaoRepository.salvar(chaveStr, valorStr)
+      return sendResponse.success(res, { chave: chaveStr, valor: valorStr }, 200)
     } catch (error) {
       console.error('[ConfigController] Erro ao salvar:', error)
-      return res.status(500).json({ error: 'Erro ao salvar configuração.' })
+      return sendResponse.error(
+        res,
+        'Erro ao salvar configuração.',
+        500,
+        'CONFIG_SAVE_ERROR'
+      )
     }
   },
 
   deletar: (req: Request, res: Response) => {
     try {
-      const { chave } = req.params
-
-      if (!chave || typeof chave !== 'string') {
-        return res.status(400).json({ error: 'Parâmetro "chave" inválido.' })
-      }
+      const chave = parseStringParam(req, res, 'chave')
+      if (!chave) return
 
       const info = configuracaoRepository.deletar(chave)
 
       if (info.changes === 0) {
-        return res.status(404).json({ error: 'Configuração não encontrada.' })
+        return sendResponse.error(
+          res,
+          'Configuração não encontrada.',
+          404,
+          'CONFIG_NOT_FOUND'
+        )
       }
 
-      return res.status(200).json({ message: 'Configuração removida com sucesso.' })
+      return sendResponse.success(res, { message: 'Configuração removida com sucesso.' })
     } catch (error) {
       console.error('[ConfigController] Erro ao deletar:', error)
-      return res.status(500).json({ error: 'Erro ao deletar configuração.' })
+      return sendResponse.error(
+        res,
+        'Erro ao deletar configuração.',
+        500,
+        'CONFIG_DELETE_ERROR'
+      )
     }
   }
 }

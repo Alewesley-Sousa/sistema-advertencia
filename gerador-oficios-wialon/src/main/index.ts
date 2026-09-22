@@ -4,6 +4,7 @@ import { initDatabase } from './database/init'
 import { consolidarInfracoesPendentes } from './services/consolidaçãoService'
 import { testarWebhookMock } from './mocks/webhookMock'
 import { routes } from './routes'
+import { iniciarCronJobs } from './jobs/infracoesCron'
 
 const app = express()
 const PORT = 3333
@@ -30,4 +31,7 @@ app.listen(PORT, async () => {
   
   // Consolida infrações de dias anteriores automaticamente ao iniciar a aplicação
   await consolidarInfracoesPendentes().catch(console.error)
+
+  // Inicia os cron jobs
+  iniciarCronJobs()
 })
