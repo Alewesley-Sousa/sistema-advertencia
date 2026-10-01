@@ -2,7 +2,7 @@
 
 import { CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
-import type { MultaDetran } from '../../../services/detran'
+import type { MultaDetran } from '../services/detran'
 
 interface DetranMultaStatusBadgeProps {
   multa: MultaDetran
@@ -28,7 +28,7 @@ function getConfig(multa: MultaDetran): StatusConfig {
     }
   }
 
-  // 2) Boleto baixado agora (tem caminhoPdf e não é jaBaixada)
+  // 2) Boleto baixado agora
   if (multa.caminhoPdf && !multa.jaBaixada) {
     return {
       variant: 'success',
@@ -49,9 +49,9 @@ function getConfig(multa: MultaDetran): StatusConfig {
     }
   }
 
-  // 4) Não baixada ainda (não deveria acontecer, mas fica seguro)
+  // 4) Não baixada ainda — usa petrol para reforçar identidade
   return {
-    variant: 'info',
+    variant: 'petrol',
     label: 'Pendente',
     Icon: Clock,
     iconClass: 'w-3.5 h-3.5',

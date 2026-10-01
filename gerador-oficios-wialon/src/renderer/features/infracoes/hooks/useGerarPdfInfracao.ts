@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { gerarPdfInfracao } from '../../../services/infracoes'
+import { gerarPdfInfracao } from '../services/infracoes'
 import { showToast } from '../../../components/ui/Toast'
 
 interface UseGerarPdfOptions {

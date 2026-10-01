@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
-import type { Infracao } from '../../../services/infracoes'
+import type { Infracao } from '../services/infracoes'
 
-export type CampoOrdenacao = 'id' | 'condutor' | 'velocidade' | 'created_at'
+export type CampoOrdenacao = 'id' | 'condutor' | 'velocidade' | 'created_at' | 'data_hora'
 export type DirecaoOrdenacao = 'asc' | 'desc'
 
 export function useInfracoesOrdenacao(
@@ -29,9 +29,10 @@ export function useInfracoesOrdenacao(
         let valorA: any = (a as any)[campoOrdenacao] ?? ''
         let valorB: any = (b as any)[campoOrdenacao] ?? ''
 
-        if (campoOrdenacao === 'created_at') {
-          const tA = new Date(a.created_at).getTime()
-          const tB = new Date(b.created_at).getTime()
+        // Trata campos de data como timestamp pra comparar corretamente
+        if (campoOrdenacao === 'created_at' || campoOrdenacao === 'data_hora') {
+          const tA = new Date((a as any)[campoOrdenacao]).getTime()
+          const tB = new Date((b as any)[campoOrdenacao]).getTime()
           valorA = isNaN(tA) ? 0 : tA
           valorB = isNaN(tB) ? 0 : tB
         } else if (typeof valorA === 'string') {

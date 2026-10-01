@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+// src/renderer/App.tsx
+
+import { useEffect, useState, useCallback } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import {
-  listarInfracoesOperacional,
   enviarEmailInfracao,
   gerarPdfInfracao,
-  type Infracao,
-} from './services/infracoes'
+} from './features/infracoes/services/infracoes'
 import {
   listarConfiguracoes,
   type Configuracao,
-} from './services/configuracoes'
+} from './features/configuracoes/services/configuracoes'
+import { useSincronizarWialon } from './features/infracoes/hooks/useSincronizarWialon'
 import { MainLayout } from './components/layout/MainLayout'
 import { PdfModal } from './features/infracoes/components/PdfModal'
 import { InfracoesPage } from './pages/InfracoesPage'
@@ -18,14 +19,20 @@ import { ConsultaDetranPage } from './pages/ConsultaDetranPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
 import { Toaster, showToast } from './components/ui/Toast'
+import type { InfracoesAba } from './components/layout/Header'
 
 export function App() {
-  const [infracoes, setInfracoes] = useState<Infracao[]>([])
+  /* ---------- Estado global ---------- */
   const [configs, setConfigs] = useState<Configuracao[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
-  const [enviandoEmailId, setEnviandoEmailId] = useState<number | null>(null)
-  const [loadingPdfId, setLoadingPdfId] = useState<number | null>(null)
+  /* Aba ativa do módulo de infrações (elevada pro App pra ser lida pelo Header) */
+  const [infracoesAba, setInfracoesAba] = useState<InfracoesAba>('OPERACIONAL')
+
+  /* Contador que, quando muda, sinaliza pra página recarregar a lista */
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  /* Estado de ações */
   const [gerandoPdfId, setGerandoPdfId] = useState<number | null>(null)
 
   const [pdfModal, setPdfModal] = useState<{ url: string | null; title: string }>({
@@ -36,29 +43,9 @@ export function App() {
   const location = useLocation()
   const rotaAtual = location.pathname
 
-  const carregarInfracoes = async () => {
-    try {
-      setLoading(true)
-      const dados: any = await listarInfracoesOperacional()
+  /* ---------- Configurações (global, carrega 1x) ---------- */
 
-      // Aceita tanto array puro quanto { data: [...] }
-      const lista: Infracao[] = Array.isArray(dados)
-        ? dados
-        : Array.isArray(dados?.data)
-          ? dados.data
-          : []
-
-      setInfracoes(lista)
-    } catch (error) {
-      console.error('Erro ao carregar infrações:', error)
-      setInfracoes([])
-      showToast.error('Erro ao carregar lista de infrações.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const carregarConfiguracoes = async () => {
+  const carregarConfiguracoes = useCallback(async () => {
     try {
       const dados: any = await listarConfiguracoes()
 
@@ -76,25 +63,52 @@ export function App() {
       setConfigs([])
       showToast.error('Erro ao carregar configurações do sistema.')
     }
-  }
-
-  useEffect(() => {
-    carregarInfracoes()
-    carregarConfiguracoes()
-    const interval = setInterval(carregarInfracoes, 10000)
-    return () => clearInterval(interval)
   }, [])
 
-  const handleAbrirPdf = async (id: number, placa: string, condutor: string) => {
-    try {
-      setLoadingPdfId(id)
-      setPdfModal({
-        url: `http://localhost:3333/api/infracoes/${id}/pdf`,
-        title: `Ofício - Placa: ${placa} (${condutor})`,
-      })
-    } finally {
-      setLoadingPdfId(null)
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true)
+      await carregarConfiguracoes()
+      setLoading(false)
     }
+    init()
+  }, [carregarConfiguracoes])
+
+  /* ---------- Refresh das páginas ---------- */
+
+  const pedirRefresh = useCallback(() => {
+    setRefreshKey((k) => k + 1)
+  }, [])
+
+  /* ---------- Sincronização Wialon (global, usada pelo Header) ---------- */
+
+  const { sincronizar, sincronizando } = useSincronizarWialon(pedirRefresh)
+
+  /* ---------- Ação única do Header (muda conforme a rota) ---------- */
+
+  const lidarComAtualizacao = useCallback(() => {
+    if (rotaAtual.includes('configuracoes')) {
+      carregarConfiguracoes()
+      return
+    }
+
+    // Em /infracoes o botão é "Sincronizar" → dispara sync com Wialon
+    if (rotaAtual.startsWith('/infracoes')) {
+      sincronizar()
+      return
+    }
+
+    // Qualquer outra rota → só recarrega
+    pedirRefresh()
+  }, [rotaAtual, carregarConfiguracoes, sincronizar, pedirRefresh])
+
+  /* ---------- Ações de PDF / Email ---------- */
+
+  const handleAbrirPdf = async (id: number, placa: string, condutor: string) => {
+    setPdfModal({
+      url: `http://localhost:3333/api/infracoes/${id}/pdf`,
+      title: `Ofício - Placa: ${placa} (${condutor})`,
+    })
   }
 
   const handleGerarPdf = async (id: number) => {
@@ -102,11 +116,12 @@ export function App() {
       setGerandoPdfId(id)
       await gerarPdfInfracao(id)
       showToast.success(`PDF do ofício #${id} gerado com sucesso!`)
-      await carregarInfracoes()
+      pedirRefresh()
     } catch (error: any) {
       console.error('Erro ao gerar PDF do ofício:', error)
       showToast.error(
-        error?.response?.data?.message || 'Ops! Ocorreu um erro ao tentar gerar o PDF do ofício.'
+        error?.response?.data?.message ||
+          'Ops! Ocorreu um erro ao tentar gerar o PDF do ofício.'
       )
     } finally {
       setGerandoPdfId(null)
@@ -116,13 +131,11 @@ export function App() {
   const handleEnviarEmail = async (id: number) => {
     const toastId = showToast.loading(`Enviando e-mail do ofício #${id}...`)
     try {
-      setEnviandoEmailId(id)
       await enviarEmailInfracao(id)
 
       showToast.dismiss(toastId)
       showToast.success(`E-mail do ofício #${id} enviado com sucesso!`)
-
-      await carregarInfracoes()
+      pedirRefresh()
     } catch (error: any) {
       console.error('Erro ao enviar e-mail:', error)
 
@@ -130,16 +143,6 @@ export function App() {
       showToast.error(
         error?.response?.data?.message || `Falha ao enviar e-mail do ofício #${id}.`
       )
-    } finally {
-      setEnviandoEmailId(null)
-    }
-  }
-
-  const lidarComAtualizacao = () => {
-    if (rotaAtual.includes('configuracoes')) {
-      carregarConfiguracoes()
-    } else {
-      carregarInfracoes()
     }
   }
 
@@ -148,28 +151,36 @@ export function App() {
       <Toaster />
 
       <Routes>
-        {/* Rota Pai: MainLayout engloba o Header e as páginas filhas via Outlet */}
-        <Route element={<MainLayout loading={loading} onRefresh={lidarComAtualizacao} />}>
-          {/* Redireciona a raiz para /infracoes (rota principal) */}
+        <Route
+          element={
+            <MainLayout
+              loading={loading || sincronizando}
+              onRefresh={lidarComAtualizacao}
+              infracoesAba={infracoesAba}
+              onInfracoesAbaChange={setInfracoesAba}
+            />
+          }
+        >
           <Route path="/" element={<Navigate to="/infracoes" replace />} />
 
           <Route
             path="/infracoes"
             element={
               <InfracoesPage
-                infracoesLocais={infracoes}
-                loadingPdfId={loadingPdfId}
+                abaAtiva={infracoesAba}
+                onAbaChange={setInfracoesAba}
+                refreshKey={refreshKey}
                 gerandoPdfId={gerandoPdfId}
-                enviandoEmailId={enviandoEmailId}
                 onAbrirPdf={handleAbrirPdf}
                 onGerarPdf={handleGerarPdf}
                 onEnviarEmail={handleEnviarEmail}
-                onAtualizarStatus={carregarInfracoes}
+                onAtualizarStatus={pedirRefresh}
               />
             }
           />
 
           <Route path="/detran" element={<ConsultaDetranPage />} />
+
           <Route
             path="/configuracoes"
             element={

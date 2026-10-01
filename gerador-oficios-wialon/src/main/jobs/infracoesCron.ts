@@ -7,8 +7,8 @@
  */
 
 import cron from 'node-cron'
-import { consolidarInfracoesPendentes } from '../services/consolidaçãoService'
-import { sincronizarInfracoesWialon } from '../services/wialonSyncService'
+import { consolidarInfracoesPendentes } from '../domains/infracoes/services/consolidaçãoService'
+import { sincronizarInfracoesWialon } from '../domains/wialon/services/wialonSyncService'
 
 export function iniciarCronJobs(): void {
   console.log('[CronJob] Agendador de tarefas inicializado.')

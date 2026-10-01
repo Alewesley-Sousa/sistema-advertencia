@@ -1,3 +1,5 @@
+// src/renderer/components/ui/Pagination.tsx
+
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
@@ -28,11 +30,11 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
   const paginas = gerarPaginas(page, totalPages)
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-slate-100">
-      <span className="text-xs text-slate-500">
-        <strong className="text-slate-700">{total}</strong> registro{total !== 1 && 's'} • página{' '}
-        <strong className="text-slate-700">{page}</strong> de{' '}
-        <strong className="text-slate-700">{totalPages}</strong>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 dark:border-petrol-800 transition-colors">
+      <span className="text-xs text-slate-500 dark:text-petrol-300/60 transition-colors">
+        <strong className="text-slate-700 dark:text-petrol-100">{total}</strong> registro{total !== 1 && 's'} • página{' '}
+        <strong className="text-slate-700 dark:text-petrol-100">{page}</strong> de{' '}
+        <strong className="text-slate-700 dark:text-petrol-100">{totalPages}</strong>
       </span>
 
       <nav className="flex items-center gap-1">
@@ -41,9 +43,10 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           className={cn(
-            'inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-500 transition',
-            'hover:bg-slate-100 hover:text-slate-700',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent'
+            'inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors cursor-pointer',
+            'text-slate-500 dark:text-petrol-300/60',
+            'hover:bg-slate-100 dark:hover:bg-petrol-800 hover:text-slate-700 dark:hover:text-white',
+            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent dark:disabled:hover:bg-transparent'
           )}
           aria-label="Página anterior"
         >
@@ -52,7 +55,10 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
 
         {paginas.map((p, idx) =>
           p === '...' ? (
-            <span key={`gap-${idx}`} className="px-1 text-xs text-slate-400 select-none">
+            <span
+              key={`gap-${idx}`}
+              className="px-1 text-xs text-slate-400 dark:text-petrol-300/40 select-none transition-colors"
+            >
               …
             </span>
           ) : (
@@ -61,10 +67,10 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
               type="button"
               onClick={() => onPageChange(p)}
               className={cn(
-                'inline-flex items-center justify-center h-8 min-w-8 px-2 rounded-lg text-xs font-semibold transition cursor-pointer',
+                'inline-flex items-center justify-center h-8 min-w-8 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
                 p === page
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-petrol-600 dark:bg-petrol-500 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-petrol-200 hover:bg-slate-100 dark:hover:bg-petrol-800'
               )}
             >
               {p}
@@ -77,9 +83,10 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           className={cn(
-            'inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-500 transition',
-            'hover:bg-slate-100 hover:text-slate-700',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent'
+            'inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors cursor-pointer',
+            'text-slate-500 dark:text-petrol-300/60',
+            'hover:bg-slate-100 dark:hover:bg-petrol-800 hover:text-slate-700 dark:hover:text-white',
+            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent dark:disabled:hover:bg-transparent'
           )}
           aria-label="Próxima página"
         >

@@ -1,18 +1,34 @@
+// src/renderer/components/layout/MainLayout.tsx
+
 import { Outlet } from 'react-router-dom'
-import { Header } from './Header'
+import { Header, type InfracoesAba } from './Header'
 
 interface MainLayoutProps {
   loading: boolean
   onRefresh: () => void
+  infracoesAba: InfracoesAba
+  onInfracoesAbaChange: (aba: InfracoesAba) => void
+  wialonConectado?: boolean
 }
 
-export function MainLayout({ loading, onRefresh }: MainLayoutProps) {
+export function MainLayout({
+  loading,
+  onRefresh,
+  infracoesAba,
+  onInfracoesAbaChange,
+  wialonConectado = true,
+}: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased">
-      {/* Passando o loading e o onRefresh para o Header */}
-      <Header loading={loading} onRefresh={onRefresh} />
-      
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-petrol-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans antialiased transition-colors">
+      <Header
+        loading={loading}
+        onRefresh={onRefresh}
+        infracoesAba={infracoesAba}
+        onInfracoesAbaChange={onInfracoesAbaChange}
+        wialonConectado={wialonConectado}
+      />
+
+      <main className="flex-1 w-full">
         <Outlet />
       </main>
     </div>

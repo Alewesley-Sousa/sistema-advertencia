@@ -1,3 +1,5 @@
+// src/renderer/components/ui/Button.tsx
+
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -12,11 +14,30 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary:   'bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-sm active:scale-95',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold border border-slate-200',
-  ghost:     'bg-transparent hover:bg-slate-100 text-slate-600 font-medium',
-  danger:    'bg-rose-500 hover:bg-rose-400 text-white font-bold shadow-sm active:scale-95',
-  outline:   'bg-white hover:bg-slate-50 text-slate-700 font-semibold border border-slate-200 shadow-sm',
+  primary: [
+    'bg-petrol-600 hover:bg-petrol-700 text-white font-semibold shadow-sm active:scale-95',
+    'dark:bg-petrol-500 dark:hover:bg-petrol-400 dark:text-white',
+  ].join(' '),
+
+  secondary: [
+    'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200',
+    'dark:bg-petrol-900 dark:hover:bg-petrol-800 dark:text-petrol-100 dark:border-petrol-800',
+  ].join(' '),
+
+  ghost: [
+    'bg-transparent hover:bg-slate-100 text-slate-600 font-medium',
+    'dark:hover:bg-petrol-900 dark:text-petrol-200',
+  ].join(' '),
+
+  danger: [
+    'bg-rose-500 hover:bg-rose-400 text-white font-bold shadow-sm active:scale-95',
+    'dark:bg-rose-600 dark:hover:bg-rose-500',
+  ].join(' '),
+
+  outline: [
+    'bg-white hover:bg-slate-50 text-slate-700 font-semibold border border-slate-200 shadow-sm',
+    'dark:bg-petrol-900 dark:hover:bg-petrol-800 dark:text-petrol-100 dark:border-petrol-800',
+  ].join(' '),
 }
 
 const SIZES: Record<ButtonSize, string> = {

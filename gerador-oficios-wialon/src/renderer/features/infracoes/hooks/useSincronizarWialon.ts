@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { sincronizarDadosWialon } from '../../../services/infracoes'
+import { sincronizarDadosWialon } from '../services/infracoes'
 import { showToast } from '../../../components/ui/Toast'
 
 export function useSincronizarWialon(onSucesso?: () => void) {

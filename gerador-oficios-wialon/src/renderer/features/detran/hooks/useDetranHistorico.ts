@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   listarHistoricoDetran,
   type InfracaoDetran,
-} from '../../../services/detran'
+} from '../services/detran'
 import type { Pagination } from '../../../types/api'
 import type { FiltroStatusDetran } from '../components/DetranHistoricoFilters'
 

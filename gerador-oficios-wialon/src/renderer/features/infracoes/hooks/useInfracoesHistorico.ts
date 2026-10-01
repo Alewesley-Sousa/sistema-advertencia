@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   buscarHistoricoInfracoes,
   type Infracao
-} from '../../../services/infracoes'
+} from '../services/infracoes'
 import type { PaginatedResponse, BaseFiltros } from '../../../types/api'
 
 export function useInfracoesHistorico(abaAtiva: 'OPERACIONAL' | 'HISTORICO') {

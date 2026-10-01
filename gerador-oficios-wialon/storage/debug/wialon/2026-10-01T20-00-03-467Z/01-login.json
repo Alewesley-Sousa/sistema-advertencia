@@ -1,0 +1,22 @@
+{
+  "host": "168.232.86.102",
+  "eid": "41a958307b6207275d41e2775590ad44",
+  "gis_sid": "5024134a02bf8653",
+  "au": "alewesley.force",
+  "tm": 1790884808,
+  "wsdk_version": "1.929.02",
+  "base_url": "https://hst-api.wialon.us",
+  "hw_gw_ip": "64.120.108.24",
+  "hw_gw_dns": "us.gpsgsm.org",
+  "gis_search": "https://search-maps.wialon.us",
+  "gis_render": "https://render-maps.wialon.us",
+  "gis_geocode": "https://geocode-maps.wialon.us",
+  "gis_routing": "https://routing-maps.wialon.us",
+  "billing_by_codes": "0",
+  "drivers_feature_flags": "5",
+  "feature_flags": "{\"notifications\":3}",
+  "video_service_url": "https://video.wialon.us",
+  "limits": {
+    "user_notification_max_text_size": 30720
+  }
+}

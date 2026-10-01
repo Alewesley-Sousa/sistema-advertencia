@@ -6,7 +6,7 @@ import {
   processarLoteDetran,
   consultarStatusLote,
   type ItemVeiculoLote,
-} from '../../../services/detran'
+} from '../services/detran'
 import { showToast } from '../../../components/ui/Toast'
 import {
   normalizarPlaca,

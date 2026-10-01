@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petroleum Fleet · Gestão de Infrações e Ofícios</title>
+  <meta name="description" content="Plataforma desktop para consulta DETRAN-CE, automação de ofícios de advertência e integração com Wialon.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            petrol: {
+              50:  '#F0F6F7',
+              100: '#E8F1F3',
+              200: '#C6DDE2',
+              300: '#93BFC8',
+              400: '#5A98A5',
+              500: '#2E7A8A',
+              600: '#0F4C5C',
+              700: '#0D4150',
+              800: '#0B3542',
+              900: '#082732',
+              950: '#041821',
+            },
+            signal: {
+              400: '#FBBF24',
+              500: '#F59E0B',
+              600: '#D97706',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { -webkit-font-smoothing: antialiased; }
+    .grid-bg {
+      background-image:
+        linear-gradient(to right, rgba(15,76,92,0.055) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15,76,92,0.055) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .grid-bg-dark {
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .mask-fade-b {
+      mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+
+  <!-- ════════════════════════════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════════════════════════════ -->
+  <header class="border-b border-slate-200 bg-white/85 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 rounded-md bg-petrol-600 flex items-center justify-center shadow-sm group-hover:bg-petrol-700 transition">
+          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </div>
+        <div class="leading-tight">
+          <div class="text-[14px] font-bold text-slate-900">Petroleum Fleet</div>
+          <div class="text-[9.5px] text-slate-500 tracking-[0.14em] uppercase font-medium">Gestão de Infrações</div>
+        </div>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-[13px] text-slate-600">
+        <a href="#solucao" class="px-3 py-2 rounded-md hover:bg-slate-100 hover:text-petrol-700 transition">Solução</a>
+        <a href="#como-funciona" class="px-3 py-2 rounded-md hover:bg-slate-100 hover:text-petrol-700 transition">Pipeline</a>
+        <a href="#componentes" class="px-3 py-2 rounded-md hover:bg-slate-100 hover:text-petrol-700 transition">Interface</a>
+        <a href="#design" class="px-3 py-2 rounded-md hover:bg-slate-100 hover:text-petrol-700 transition">Design</a>
+        <a href="#roadmap" class="px-3 py-2 rounded-md hover:bg-slate-100 hover:text-petrol-700 transition">Roadmap</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <a href="#" class="hidden sm:inline-flex h-9 px-3 items-center text-[13px] font-medium text-slate-600 hover:text-petrol-700 transition">Documentação</a>
+        <a href="#cta" class="inline-flex h-9 px-4 items-center rounded-md bg-petrol-600 hover:bg-petrol-700 text-white text-[13px] font-semibold transition shadow-sm">
+          Solicitar acesso
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       HERO
+  ════════════════════════════════════════════════════════════════ -->
+  <section class="relative overflow-hidden border-b border-slate-200 bg-white">
+    <div class="absolute inset-0 grid-bg opacity-70"></div>
+    <div class="absolute -top-40 -right-40 w-[520px] h-[520px] rounded-full bg-petrol-100/60 blur-3xl pointer-events-none"></div>
+
+    <div class="relative max-w-6xl mx-auto px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+
+        <!-- Coluna esquerda: copy -->
+        <div class="lg:col-span-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-petrol-50 border border-petrol-600/15 mb-6">
+            <span class="relative flex w-1.5 h-1.5">
+              <span class="absolute inline-flex w-full h-full rounded-full bg-petrol-500 opacity-75 animate-ping"></span>
+              <span class="relative inline-flex w-1.5 h-1.5 rounded-full bg-petrol-600"></span>
+            </span>
+            <span class="text-[10px] font-bold text-petrol-700 tracking-[0.16em] uppercase">Plataforma desktop · v1.0</span>
+          </div>
+
+          <h1 class="text-[40px] sm:text-[48px] lg:text-[56px] font-extrabold text-slate-900 tracking-[-0.03em] leading-[1.03]">
+            Toda a operação de
+            <span class="text-petrol-600">infrações</span>
+            e
+            <span class="relative inline-block whitespace-nowrap">
+              ofícios
+              <span class="absolute left-0 -bottom-1 w-full h-[3px] bg-signal-500 rounded-full"></span>
+            </span>
+            em uma única tela.
+          </h1>
+
+          <p class="mt-6 text-[17px] text-slate-600 max-w-xl leading-relaxed">
+            Consulta automática no DETRAN-CE, geração de advertências em PDF e integração com o rastreador Wialon — sem abrir o navegador, sem planilha paralela, sem retrabalho manual.
+          </p>
+
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#cta" class="inline-flex items-center gap-2 h-11 px-6 rounded-md bg-petrol-600 hover:bg-petrol-700 text-white text-[13px] font-semibold transition shadow-sm">
+              Começar agora
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="#componentes" class="inline-flex items-center gap-2 h-11 px-6 rounded-md bg-white border border-slate-300 hover:border-petrol-600/40 hover:bg-petrol-50 text-slate-700 text-[13px] font-semibold transition">
+              Ver interface
+            </a>
+          </div>
+
+          <div class="mt-10 pt-8 border-t border-slate-200 grid grid-cols-3 gap-6">
+            <div>
+              <div class="font-mono text-[22px] font-bold text-slate-900 leading-none">55</div>
+              <div class="mt-1.5 text-[11px] text-slate-500 leading-tight">veículos em lote<br>por execução</div>
+            </div>
+            <div>
+              <div class="font-mono text-[22px] font-bold text-slate-900 leading-none">~3.5s</div>
+              <div class="mt-1.5 text-[11px] text-slate-500 leading-tight">delay entre<br>consultas</div>
+            </div>
+            <div>
+              <div class="font-mono text-[22px] font-bold text-slate-900 leading-none">100%</div>
+              <div class="mt-1.5 text-[11px] text-slate-500 leading-tight">local · sem<br>servidor externo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna direita: mockup do painel -->
+        <div class="lg:col-span-6">
+          <div class="relative">
+            <div class="absolute -inset-4 bg-gradient-to-tr from-petrol-600/10 via-transparent to-signal-500/10 rounded-2xl blur-2xl"></div>
+
+            <!-- Janela do app -->
+            <div class="relative rounded-xl border border-slate-300 bg-white shadow-2xl overflow-hidden">
+              <!-- Title bar -->
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-200 bg-slate-50">
+                <div class="w-2.5 h-2.5 rounded-full bg-rose-400"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-signal-400"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                <div class="ml-3 text-[11px] text-slate-500 font-mono">petroleum-fleet.exe</div>
+              </div>
+
+              <!-- Conteúdo mockup -->
+              <div class="p-5 space-y-4">
+
+                <!-- Painel DETRAN simulado -->
+                <div class="rounded-lg border border-petrol-600/15 bg-petrol-100 p-4">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="w-1.5 h-1.5 rounded-full bg-petrol-600"></span>
+                    <span class="text-[9px] font-bold text-petrol-700 tracking-[0.16em] uppercase">Consulta individual</span>
+                  </div>
+                  <div class="grid grid-cols-5 gap-2">
+                    <div class="col-span-2 h-9 rounded bg-white border border-slate-300 flex items-center px-2.5 font-mono text-[11px] font-bold text-slate-800">ABC1D23</div>
+                    <div class="col-span-3 h-9 rounded bg-white border border-slate-300 flex items-center px-2.5 font-mono text-[10px] text-slate-600">9BWZZZ377VT004251</div>
+                  </div>
+                  <button class="mt-3 w-full h-8 rounded bg-petrol-600 text-white text-[11px] font-semibold">Consultar DETRAN</button>
+                </div>
+
+                <!-- Lista de resultados -->
+                <div class="rounded-lg border border-slate-200 overflow-hidden">
+                  <div class="bg-petrol-600 px-3 py-2 flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-white/95 tracking-[0.14em] uppercase">Resultado</span>
+                    <span class="text-[9px] font-mono text-white/70">2 itens</span>
+                  </div>
+                  <div class="divide-y divide-slate-100">
+                    <div class="flex items-center justify-between px-3 py-2.5">
+                      <div class="flex items-center gap-2.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-signal-500"></span>
+                        <span class="font-mono text-[11px] font-bold text-slate-900">ABC1D23</span>
+                      </div>
+                      <span class="text-[9px] font-bold text-signal-600 bg-signal-400/15 px-1.5 py-0.5 rounded uppercase tracking-wider">Pendente</span>
+                    </div>
+                    <div class="flex items-center justify-between px-3 py-2.5">
+                      <div class="flex items-center gap-2.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="font-mono text-[11px] font-bold text-slate-900">XYZ9A87</span>
+                      </div>
+                      <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded uppercase tracking-wider">Enviado</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Barra de progresso do lote -->
+                <div class="rounded-lg border border-slate-200 p-3">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Lote em execução</span>
+                    <span class="font-mono text-[10px] font-bold text-petrol-600">34/55</span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full w-[62%] bg-petrol-600 rounded-full"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       PROBLEMA
+  ════════════════════════════════════════════════════════════════ -->
+  <section class="bg-slate-50 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 py-20">
+      <div class="max-w-2xl mb-14">
+        <div class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">O problema</div>
+        <h2 class="text-[32px] md:text-[40px] font-bold text-slate-900 tracking-tight leading-[1.1]">
+          O processo manual custa <span class="text-signal-600">tempo</span> que o setor não tem.
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        <div class="bg-white border border-slate-200 rounded-lg p-6">
+          <div class="w-9 h-9 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center mb-4">
+            <svg class="w-4 h-4 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          </div>
+          <h3 class="text-[15px] font-bold text-slate-900 mb-2">Consulta veículo por veículo</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed">
+            Cada placa exige abrir o navegador, digitar os dados, esperar o carregamento, baixar PDF — manualmente. Em 55 veículos, isso vira uma tarde inteira.
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-lg p-6">
+          <div class="w-9 h-9 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center mb-4">
+            <svg class="w-4 h-4 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>
+          </div>
+          <h3 class="text-[15px] font-bold text-slate-900 mb-2">Ofícios preenchidos à mão</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed">
+            Nome do condutor, matrícula, placa, data, velocidade — tudo copiado de um lado para o outro. Erro de digitação = advertência inválida juridicamente.
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-lg p-6">
+          <div class="w-9 h-9 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center mb-4">
+            <svg class="w-4 h-4 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 16l4-4 4 4 6-6"/></svg>
+          </div>
+          <h3 class="text-[15px] font-bold text-slate-900 mb-2">Zero rastreabilidade</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed">
+            Quando o RH pergunta "esse ofício foi enviado?", ninguém sabe. Sem histórico, sem status, sem trilha de auditoria.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       PIPELINE / COMO FUNCIONA
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="como-funciona" class="bg-petrol-950 relative overflow-hidden">
+    <div class="absolute inset-0 grid-bg-dark opacity-60"></div>
+    <div class="relative max-w-6xl mx-auto px-6 py-24">
+
+      <div class="max-w-2xl mb-16">
+        <div class="text-[10px] font-bold text-signal-500 tracking-[0.2em] uppercase mb-3">Como funciona</div>
+        <h2 class="text-[32px] md:text-[40px] font-bold text-white tracking-tight leading-[1.1]">
+          Um pipeline, quatro estágios, zero intervenção manual.
+        </h2>
+        <p class="mt-4 text-[16px] text-petrol-200/80 leading-relaxed max-w-xl">
+          Da notificação do rastreador ao ofício assinado em PDF — o sistema orquestra tudo internamente.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Step 01 -->
+        <div class="bg-white/[0.04] border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-5">
+            <span class="font-mono text-[11px] font-bold text-signal-500">01</span>
+            <div class="w-7 h-7 rounded-md bg-signal-500/15 border border-signal-500/30 flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-signal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+            </div>
+          </div>
+          <h3 class="text-[15px] font-bold text-white mb-2">Recepção</h3>
+          <p class="text-[13px] text-petrol-200/70 leading-relaxed">
+            Webhook recebe o alerta de excesso de velocidade enviado pela Wialon em tempo real.
+          </p>
+        </div>
+
+        <!-- Step 02 -->
+        <div class="bg-white/[0.04] border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-5">
+            <span class="font-mono text-[11px] font-bold text-signal-500">02</span>
+            <div class="w-7 h-7 rounded-md bg-signal-500/15 border border-signal-500/30 flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-signal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+          </div>
+          <h3 class="text-[15px] font-bold text-white mb-2">Validação</h3>
+          <p class="text-[13px] text-petrol-200/70 leading-relaxed">
+            Aplica a regra de tolerância e verifica o pico diário antes de considerar a infração.
+          </p>
+        </div>
+
+        <!-- Step 03 -->
+        <div class="bg-white/[0.04] border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-5">
+            <span class="font-mono text-[11px] font-bold text-signal-500">03</span>
+            <div class="w-7 h-7 rounded-md bg-signal-500/15 border border-signal-500/30 flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-signal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </div>
+          </div>
+          <h3 class="text-[15px] font-bold text-white mb-2">Geração</h3>
+          <p class="text-[13px] text-petrol-200/70 leading-relaxed">
+            Template HTML preenchido dinamicamente e renderizado em PDF oficial via Puppeteer.
+          </p>
+        </div>
+
+        <!-- Step 04 -->
+        <div class="bg-white/[0.04] border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+          <div class="flex items-center justify-between mb-5">
+            <span class="font-mono text-[11px] font-bold text-signal-500">04</span>
+            <div class="w-7 h-7 rounded-md bg-signal-500/15 border border-signal-500/30 flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-signal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            </div>
+          </div>
+          <h3 class="text-[15px] font-bold text-white mb-2">Persistência</h3>
+          <p class="text-[13px] text-petrol-200/70 leading-relaxed">
+            Arquivo salvo em disco e metadados gravados no SQLite local com status rastreável.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Faixa de stack -->
+      <div class="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <span class="text-[10px] font-bold text-petrol-300/60 tracking-[0.2em] uppercase">Stack</span>
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] font-mono text-petrol-200/70">
+          <span>Electron</span>
+          <span class="text-petrol-400">·</span>
+          <span>React + TypeScript</span>
+          <span class="text-petrol-400">·</span>
+          <span>Node.js + Express</span>
+          <span class="text-petrol-400">·</span>
+          <span>SQLite</span>
+          <span class="text-petrol-400">·</span>
+          <span>Puppeteer</span>
+          <span class="text-petrol-400">·</span>
+          <span>Tailwind CSS</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       MÓDULOS / SOLUÇÃO
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="solucao" class="bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+
+      <div class="max-w-2xl mb-16">
+        <div class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">A solução</div>
+        <h2 class="text-[32px] md:text-[40px] font-bold text-slate-900 tracking-tight leading-[1.1]">
+          Quatro módulos integrados, um único executável.
+        </h2>
+      </div>
+
+      <!-- Grid de features 2x2 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        <!-- Módulo 01 -->
+        <div class="group bg-white border border-slate-200 rounded-xl p-7 hover:border-petrol-600/40 hover:shadow-md transition-all">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-11 h-11 rounded-lg bg-petrol-100 border border-petrol-600/15 flex items-center justify-center">
+              <svg class="w-5 h-5 text-petrol-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[10px] text-slate-400 tracking-widest">M1</span>
+          </div>
+          <h3 class="text-[18px] font-bold text-slate-900 mb-2 tracking-tight">Consulta DETRAN-CE automatizada</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed mb-4">
+            Playwright headless preenche placa e chassi, aguarda o resultado e captura o PDF gerado. Funciona com 1 veículo avulso ou lote completo.
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">single</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">batch xlsx</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">pdf auto</span>
+          </div>
+        </div>
+
+        <!-- Módulo 02 -->
+        <div class="group bg-white border border-slate-200 rounded-xl p-7 hover:border-petrol-600/40 hover:shadow-md transition-all">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-11 h-11 rounded-lg bg-petrol-100 border border-petrol-600/15 flex items-center justify-center">
+              <svg class="w-5 h-5 text-petrol-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v6M12 22v-6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M22 12h-6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[10px] text-slate-400 tracking-widest">M2</span>
+          </div>
+          <h3 class="text-[18px] font-bold text-slate-900 mb-2 tracking-tight">Integração Wialon em tempo real</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed mb-4">
+            Webhook recebe os alertas de excesso de velocidade. Regra de consolidação por pico diário evita duplicar a mesma ocorrência várias vezes.
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">webhook</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">pico diário</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">tolerância</span>
+          </div>
+        </div>
+
+        <!-- Módulo 03 -->
+        <div class="group bg-white border border-slate-200 rounded-xl p-7 hover:border-petrol-600/40 hover:shadow-md transition-all">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-11 h-11 rounded-lg bg-petrol-100 border border-petrol-600/15 flex items-center justify-center">
+              <svg class="w-5 h-5 text-petrol-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[10px] text-slate-400 tracking-widest">M3</span>
+          </div>
+          <h3 class="text-[18px] font-bold text-slate-900 mb-2 tracking-tight">Ofícios oficiais em PDF</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed mb-4">
+            Template institucional preenchido com dados do condutor, veículo, local e velocidade. Nomenclatura padronizada para arquivamento.
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">puppeteer</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">template tailwind</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">assinatura</span>
+          </div>
+        </div>
+
+        <!-- Módulo 04 -->
+        <div class="group bg-white border border-slate-200 rounded-xl p-7 hover:border-petrol-600/40 hover:shadow-md transition-all">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-11 h-11 rounded-lg bg-petrol-100 border border-petrol-600/15 flex items-center justify-center">
+              <svg class="w-5 h-5 text-petrol-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M9 9h6v6H9z"/>
+              </svg>
+            </div>
+            <span class="font-mono text-[10px] text-slate-400 tracking-widest">M4</span>
+          </div>
+          <h3 class="text-[18px] font-bold text-slate-900 mb-2 tracking-tight">Dashboard com trilha de auditoria</h3>
+          <p class="text-[13.5px] text-slate-600 leading-relaxed mb-4">
+            Histórico completo com status por registro — registrado, gerado, enviado, ignorado ou erro — e filtros por período, placa e condutor.
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">histórico</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">retenção</span>
+            <span class="text-[10px] font-mono text-petrol-700 bg-petrol-50 border border-petrol-600/15 px-2 py-0.5 rounded">auditoria</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       COMPONENTES EM AÇÃO
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="componentes" class="bg-slate-50 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+
+      <div class="max-w-2xl mb-16">
+        <div class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">Interface</div>
+        <h2 class="text-[32px] md:text-[40px] font-bold text-slate-900 tracking-tight leading-[1.1]">
+          Aplicação real do sistema de design.
+        </h2>
+        <p class="mt-4 text-[15px] text-slate-600 leading-relaxed">
+          Componentes que você encontra dentro do executável — mesmos padrões, mesma hierarquia, mesma paleta.
+        </p>
+      </div>
+
+      <!-- Grid de cards contextuais -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        <!-- Card 1: consulta individual (petróleo cheio) -->
+        <div class="bg-petrol-100 border border-petrol-600/15 rounded-xl p-6 flex flex-col shadow-[0_1px_2px_rgba(15,76,92,0.04)]">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-1.5 h-1.5 rounded-full bg-petrol-600"></span>
+            <span class="text-[10px] font-bold text-petrol-700 tracking-[0.16em] uppercase">Consulta individual</span>
+          </div>
+
+          <h3 class="text-[16px] font-bold text-slate-900 tracking-tight">Identificação do veículo</h3>
+          <p class="text-[12.5px] text-slate-600 mt-1">Informe placa e chassi para consultar débitos.</p>
+
+          <div class="mt-5 space-y-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 tracking-[0.14em] uppercase mb-1.5">Placa</label>
+              <div class="h-11 rounded-md bg-white border border-slate-300 flex items-center px-3 font-mono text-[15px] font-bold text-slate-900 tracking-wider">ABC1D23</div>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 tracking-[0.14em] uppercase mb-1.5">Chassi</label>
+              <div class="h-11 rounded-md bg-white border border-slate-300 flex items-center px-3 font-mono text-[12px] font-semibold text-slate-700 tracking-wider">9BWZZZ377VT004251</div>
+            </div>
+          </div>
+
+          <button class="mt-5 h-11 rounded-md bg-petrol-600 hover:bg-petrol-700 text-white text-[13px] font-semibold transition">
+            Consultar DETRAN
+          </button>
+
+          <div class="mt-4 pt-4 border-t border-petrol-600/12 flex items-center gap-1.5 text-[11px] text-slate-600">
+            <svg class="w-3 h-3 text-petrol-700/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+            Conexão direta com o DETRAN-CE
+          </div>
+        </div>
+
+        <!-- Card 2: infração pendente -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex flex-col shadow-sm">
+          <div class="flex items-start justify-between mb-5">
+            <div>
+              <div class="text-[10px] font-bold text-slate-400 tracking-[0.16em] uppercase mb-1">Infracao #4821</div>
+              <div class="font-mono text-[15px] font-bold text-slate-900 tracking-wide">ABC1D23</div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-signal-400/15 border border-signal-500/30">
+              <span class="w-1.5 h-1.5 rounded-full bg-signal-500"></span>
+              <span class="text-[10px] font-bold text-signal-600 uppercase tracking-wider">Pendente</span>
+            </span>
+          </div>
+
+          <div class="space-y-3 text-[13px]">
+            <div class="flex justify-between items-baseline">
+              <span class="text-slate-500">Velocidade registrada</span>
+              <span class="font-mono font-bold text-signal-600 text-[15px]">95 km/h</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-slate-500">Limite da via</span>
+              <span class="font-mono font-semibold text-slate-700">80 km/h</span>
+            </div>
+            <div class="flex justify-between items-baseline pt-3 border-t border-slate-100">
+              <span class="text-slate-500">Excesso</span>
+              <span class="font-mono font-bold text-rose-600">+18.7%</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-slate-500">Registrado em</span>
+              <span class="font-mono text-slate-700 text-[12px]">10/07 · 15:52</span>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-5 border-t border-slate-100 flex gap-2">
+            <button class="flex-1 h-9 rounded-md bg-petrol-600 hover:bg-petrol-700 text-white text-[12px] font-semibold transition">
+              Gerar ofício
+            </button>
+            <button class="h-9 px-3 rounded-md border border-slate-300 hover:bg-slate-50 text-slate-600 text-[12px] font-semibold transition">
+              Descartar
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 3: ofício enviado -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex flex-col shadow-sm">
+          <div class="flex items-start justify-between mb-5">
+            <div>
+              <div class="text-[10px] font-bold text-slate-400 tracking-[0.16em] uppercase mb-1">Ofício #347</div>
+              <div class="font-mono text-[15px] font-bold text-slate-900 tracking-wide">XYZ9A87</div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Enviado</span>
+            </span>
+          </div>
+
+          <div class="space-y-3 text-[13px]">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Condutor</span>
+              <span class="font-semibold text-slate-800">Carlos M.</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Matrícula</span>
+              <span class="font-mono text-slate-700">00412-8</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Enviado em</span>
+              <span class="font-mono text-slate-700 text-[12px]">25/09 · 09:14</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Arquivo</span>
+              <span class="font-mono text-petrol-700 text-[11px] truncate ml-3">XYZ9A87_MULTA_2025.pdf</span>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-5 border-t border-slate-100">
+            <button class="w-full h-9 rounded-md border border-petrol-600/25 bg-petrol-50 hover:bg-petrol-100 text-petrol-700 text-[12px] font-semibold transition">
+              Abrir 2ª via
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══ TABELA CORRIGIDA ═══ -->
+      <div class="mt-10 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+
+        <div class="px-6 py-5 border-b border-slate-200 flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <div class="text-[10px] font-bold text-slate-400 tracking-[0.18em] uppercase mb-1.5">Histórico operacional</div>
+            <div class="flex items-baseline gap-3">
+              <h3 class="text-[17px] font-bold text-slate-900 tracking-tight">Consultas realizadas</h3>
+              <span class="font-mono text-[11px] text-slate-400">
+                <span class="font-bold text-slate-600">347</span> registros
+              </span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-signal-400/15 border border-signal-500/30">
+              <span class="w-1.5 h-1.5 rounded-full bg-signal-500"></span>
+              <span class="text-[10px] font-bold text-signal-600 uppercase tracking-wider">12 pendentes</span>
+            </span>
+          </div>
+        </div>
+
+        <table class="w-full text-[13px]">
+          <!-- Cabeçalho em petróleo sólido -->
+          <thead class="bg-petrol-600">
+            <tr class="text-left text-[10px] font-bold text-white/95 tracking-[0.14em] uppercase">
+              <th class="px-6 py-3.5">Placa</th>
+              <th class="px-6 py-3.5">Condutor</th>
+              <th class="px-6 py-3.5">Data</th>
+              <th class="px-6 py-3.5">Excesso</th>
+              <th class="px-6 py-3.5">Status</th>
+              <th class="px-6 py-3.5 text-right">Ação</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-slate-100">
+
+            <!-- Pendente -->
+            <tr class="hover:bg-petrol-50/70 transition-colors">
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-slate-900 tracking-wide">ABC1D23</span>
+              </td>
+              <td class="px-6 py-4 text-slate-700">João S.</td>
+              <td class="px-6 py-4 font-mono text-slate-500 text-[12px]">10/07 · 15:52</td>
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-signal-600 bg-signal-400/12 px-2 py-0.5 rounded text-[12px]">
+                  +18.7%
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-signal-400/15 border border-signal-500/30 text-[10px] font-bold text-signal-600 uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-signal-500"></span>
+                  Pendente
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-[11px] font-bold text-petrol-600 hover:text-petrol-700 hover:underline underline-offset-2">
+                  Gerar ofício →
+                </button>
+              </td>
+            </tr>
+
+            <!-- Enviado -->
+            <tr class="hover:bg-petrol-50/70 transition-colors">
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-slate-900 tracking-wide">XYZ9A87</span>
+              </td>
+              <td class="px-6 py-4 text-slate-700">Carlos M.</td>
+              <td class="px-6 py-4 font-mono text-slate-500 text-[12px]">08/07 · 11:20</td>
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-signal-600 bg-signal-400/12 px-2 py-0.5 rounded text-[12px]">
+                  +22.4%
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Enviado
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-[11px] font-bold text-petrol-600 hover:text-petrol-700 hover:underline underline-offset-2">
+                  Abrir PDF →
+                </button>
+              </td>
+            </tr>
+
+            <!-- Erro (com fundo de alerta) -->
+            <tr class="bg-rose-50/40 hover:bg-rose-50/70 transition-colors">
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-slate-900 tracking-wide">QRS4B56</span>
+              </td>
+              <td class="px-6 py-4 text-slate-700">Ana P.</td>
+              <td class="px-6 py-4 font-mono text-slate-500 text-[12px]">07/07 · 08:15</td>
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-signal-600 bg-signal-400/12 px-2 py-0.5 rounded text-[12px]">
+                  +15.0%
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-[10px] font-bold text-rose-700 uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  Erro
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline underline-offset-2">
+                  Reenviar →
+                </button>
+              </td>
+            </tr>
+
+            <!-- Ignorado (linha secundária, mais apagada) -->
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-slate-400 tracking-wide">TUV7C89</span>
+              </td>
+              <td class="px-6 py-4 text-slate-500">Rafael L.</td>
+              <td class="px-6 py-4 font-mono text-slate-400 text-[12px]">06/07 · 19:44</td>
+              <td class="px-6 py-4 font-mono text-slate-400">—</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                  Ignorado
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right text-slate-300 text-[11px]">—</td>
+            </tr>
+
+          </tbody>
+        </table>
+
+        <!-- Rodapé da tabela -->
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+          <span class="text-[11px] text-slate-500 font-mono">Exibindo 4 de 347</span>
+          <button class="text-[11px] font-bold text-petrol-600 hover:text-petrol-700 transition">
+            Ver histórico completo →
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       DESIGN SYSTEM
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="design" class="bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+
+      <div class="max-w-2xl mb-16">
+        <div class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">Design system</div>
+        <h2 class="text-[32px] md:text-[40px] font-bold text-slate-900 tracking-tight leading-[1.1]">
+          Petroleum Blue, Signal Amber, Semânticas universais.
+        </h2>
+        <p class="mt-4 text-[15px] text-slate-600 leading-relaxed">
+          Regra 60-30-10 aplicada: neutros como base, petróleo como identidade, âmbar reservado para sinal funcional. Contraste real entre camadas — nunca `-50` como separador.
+        </p>
+      </div>
+
+      <!-- Cor primária -->
+      <div class="mb-12">
+        <div class="flex items-baseline justify-between mb-4 flex-wrap gap-3">
+          <div>
+            <h3 class="text-[15px] font-bold text-slate-900 tracking-tight">Primária · Petroleum Blue</h3>
+            <span class="text-[11px] font-mono text-slate-400">autoridade · institucional · confiança</span>
+          </div>
+          <span class="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded">#0F4C5C</span>
+        </div>
+        <div class="grid grid-cols-5 md:grid-cols-11 rounded-lg overflow-hidden border border-slate-200">
+          <div class="aspect-[4/5] bg-petrol-50 flex items-end p-2"><span class="text-[9px] font-mono text-slate-500">50</span></div>
+          <div class="aspect-[4/5] bg-petrol-100 flex items-end p-2"><span class="text-[9px] font-mono text-slate-500">100</span></div>
+          <div class="aspect-[4/5] bg-petrol-200 flex items-end p-2"><span class="text-[9px] font-mono text-slate-600">200</span></div>
+          <div class="aspect-[4/5] bg-petrol-300 flex items-end p-2"><span class="text-[9px] font-mono text-slate-700">300</span></div>
+          <div class="aspect-[4/5] bg-petrol-400 flex items-end p-2"><span class="text-[9px] font-mono text-white">400</span></div>
+          <div class="aspect-[4/5] bg-petrol-500 flex items-end p-2"><span class="text-[9px] font-mono text-white">500</span></div>
+          <div class="aspect-[4/5] bg-petrol-600 flex items-end p-2 relative">
+            <span class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-signal-500 ring-2 ring-white/30"></span>
+            <span class="text-[9px] font-mono text-white font-bold">600</span>
+          </div>
+          <div class="aspect-[4/5] bg-petrol-700 flex items-end p-2"><span class="text-[9px] font-mono text-white">700</span></div>
+          <div class="aspect-[4/5] bg-petrol-800 flex items-end p-2"><span class="text-[9px] font-mono text-white">800</span></div>
+          <div class="aspect-[4/5] bg-petrol-900 flex items-end p-2"><span class="text-[9px] font-mono text-white">900</span></div>
+          <div class="aspect-[4/5] bg-petrol-950 flex items-end p-2"><span class="text-[9px] font-mono text-white">950</span></div>
+        </div>
+        <p class="mt-3 text-[12px] text-slate-500 leading-relaxed">
+          <code class="font-mono text-petrol-700 bg-petrol-50 px-1 rounded">600</code> em botões, cabeçalhos e marca ·
+          <code class="font-mono text-petrol-700 bg-petrol-50 px-1 rounded">100</code> em superfícies de destaque ·
+          <code class="font-mono text-petrol-700 bg-petrol-50 px-1 rounded">950</code> em seções escuras.
+        </p>
+      </div>
+
+      <!-- Acento + Semânticas -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <div>
+          <div class="flex items-baseline justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <h3 class="text-[15px] font-bold text-slate-900 tracking-tight">Acento · Signal Amber</h3>
+              <span class="text-[11px] font-mono text-slate-400">atenção · alerta funcional</span>
+            </div>
+            <span class="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded">#F59E0B</span>
+          </div>
+          <div class="grid grid-cols-3 rounded-lg overflow-hidden border border-slate-200">
+            <div class="aspect-[3/2] bg-signal-400 flex items-end p-3"><span class="text-[10px] font-mono text-slate-800 font-bold">400</span></div>
+            <div class="aspect-[3/2] bg-signal-500 flex items-end p-3"><span class="text-[10px] font-mono text-white font-bold">500</span></div>
+            <div class="aspect-[3/2] bg-signal-600 flex items-end p-3"><span class="text-[10px] font-mono text-white font-bold">600</span></div>
+          </div>
+          <p class="mt-3 text-[12px] text-slate-500 leading-relaxed">
+            Uso <strong class="text-slate-700">restrito</strong>: excesso de velocidade, badges de pendência, destaques de alerta. Nunca como decoração de fundo. Máximo 10% da tela.
+          </p>
+        </div>
+
+        <div>
+          <div class="flex items-baseline justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <h3 class="text-[15px] font-bold text-slate-900 tracking-tight">Semânticas universais</h3>
+              <span class="text-[11px] font-mono text-slate-400">status de ciclo de vida</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Quitado</span>
+              </div>
+              <div class="font-mono text-[10px] text-emerald-600 mt-1.5">emerald-500</div>
+            </div>
+            <div class="rounded-lg border border-signal-500/30 bg-signal-400/10 p-3.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-signal-500"></span>
+                <span class="text-[11px] font-bold text-signal-600 uppercase tracking-wider">Pendente</span>
+              </div>
+              <div class="font-mono text-[10px] text-signal-600 mt-1.5">signal-500</div>
+            </div>
+            <div class="rounded-lg border border-rose-200 bg-rose-50 p-3.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                <span class="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Erro</span>
+              </div>
+              <div class="font-mono text-[10px] text-rose-600 mt-1.5">rose-500</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Ignorado</span>
+              </div>
+              <div class="font-mono text-[10px] text-slate-500 mt-1.5">slate-400</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Regra 60-30-10 -->
+      <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
+          <div class="font-mono text-[28px] font-bold text-slate-900 mb-2">60%</div>
+          <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">Neutros</div>
+          <p class="text-[12.5px] text-slate-600 leading-relaxed">Fundos, bordas, textos secundários, tabelas. Nunca competem com a marca.</p>
+        </div>
+        <div class="bg-petrol-100 border border-petrol-600/15 rounded-xl p-6">
+          <div class="font-mono text-[28px] font-bold text-petrol-700 mb-2">30%</div>
+          <div class="text-[11px] font-bold text-petrol-800 uppercase tracking-wider mb-2">Petróleo</div>
+          <p class="text-[12.5px] text-slate-700 leading-relaxed">Botões primários, cabeçalhos, painéis operacionais, ícones de marca.</p>
+        </div>
+        <div class="bg-signal-400/10 border border-signal-500/25 rounded-xl p-6">
+          <div class="font-mono text-[28px] font-bold text-signal-600 mb-2">10%</div>
+          <div class="text-[11px] font-bold text-signal-600 uppercase tracking-wider mb-2">Âmbar + status</div>
+          <p class="text-[12.5px] text-slate-700 leading-relaxed">Só onde precisa de atenção. Excesso destrói a função sinalizadora.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       ROADMAP
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="roadmap" class="bg-slate-50 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+
+      <div class="max-w-2xl mb-16">
+        <div class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">Roadmap</div>
+        <h2 class="text-[32px] md:text-[40px] font-bold text-slate-900 tracking-tight leading-[1.1]">
+          Desenvolvimento em cinco blocos incrementais.
+        </h2>
+        <p class="mt-4 text-[15px] text-slate-600 leading-relaxed">
+          Cada bloco é entregável e testável de ponta a ponta. O MVP roda antes do lote escalar.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+
+        <!-- Bloco 1 -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex items-start gap-5 hover:border-petrol-600/30 transition-colors">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+            <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-3 flex-wrap mb-1">
+              <span class="font-mono text-[10px] font-bold text-slate-400 tracking-widest">BLOCO 01</span>
+              <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded uppercase tracking-wider">
+                Concluído
+              </span>
+            </div>
+            <h3 class="text-[15px] font-bold text-slate-900 tracking-tight mb-1.5">Setup da base e arquitetura</h3>
+            <p class="text-[13px] text-slate-600 leading-relaxed">
+              Estrutura de pastas (main / renderer / shared), aliases de importação, backend Express integrado ao Vite, migrações SQLite iniciais.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bloco 2 -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex items-start gap-5 hover:border-petrol-600/30 transition-colors">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-petrol-100 border border-petrol-600/20 flex items-center justify-center">
+            <div class="w-4 h-4 rounded-full border-2 border-petrol-600 border-t-transparent animate-spin"></div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-3 flex-wrap mb-1">
+              <span class="font-mono text-[10px] font-bold text-slate-400 tracking-widest">BLOCO 02</span>
+              <span class="inline-flex items-center gap-1 text-[10px] font-bold text-petrol-700 bg-petrol-50 border border-petrol-600/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                Em curso
+              </span>
+            </div>
+            <h3 class="text-[15px] font-bold text-slate-900 tracking-tight mb-1.5">Integração Wialon e Webhook engine</h3>
+            <p class="text-[13px] text-slate-600 leading-relaxed">
+              Schema do webhook, rota de recepção, enriquecimento de dados via API REST Wialon, camada de regras com tolerância de velocidade.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bloco 3 -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex items-start gap-5 hover:border-petrol-600/30 transition-colors">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <span class="font-mono text-[13px] font-bold text-slate-500">03</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-3 flex-wrap mb-1">
+              <span class="font-mono text-[10px] font-bold text-slate-400 tracking-widest">BLOCO 03</span>
+            </div>
+            <h3 class="text-[15px] font-bold text-slate-900 tracking-tight mb-1.5">Template HTML e engine de impressão PDF</h3>
+            <p class="text-[13px] text-slate-600 leading-relaxed">
+              Layout responsivo do Ofício de Advertência em HTML/Tailwind, configuração do Puppeteer, salvamento automático em /documentos/oficios/.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bloco 4 -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex items-start gap-5 hover:border-petrol-600/30 transition-colors">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <span class="font-mono text-[13px] font-bold text-slate-500">04</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-3 flex-wrap mb-1">
+              <span class="font-mono text-[10px] font-bold text-slate-400 tracking-widest">BLOCO 04</span>
+            </div>
+            <h3 class="text-[15px] font-bold text-slate-900 tracking-tight mb-1.5">Dashboard e interface de operação</h3>
+            <p class="text-[13px] text-slate-600 leading-relaxed">
+              Tabela de histórico com filtros, modal de 2ª via, tela de configurações, cards de indicadores operacionais.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bloco 5 -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 flex items-start gap-5 hover:border-petrol-600/30 transition-colors">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <span class="font-mono text-[13px] font-bold text-slate-500">05</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-3 flex-wrap mb-1">
+              <span class="font-mono text-[10px] font-bold text-slate-400 tracking-widest">BLOCO 05</span>
+            </div>
+            <h3 class="text-[15px] font-bold text-slate-900 tracking-tight mb-1.5">Empacotamento desktop e finalização</h3>
+            <p class="text-[13px] text-slate-600 leading-relaxed">
+              Empacotamento Electron/Tauri, teste do fluxo completo em ambiente limpo, geração do .exe final.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       CTA FINAL
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="cta" class="bg-white">
+    <div class="max-w-6xl mx-auto px-6 py-24">
+      <div class="relative overflow-hidden rounded-2xl bg-petrol-600 px-8 py-14 md:px-14 md:py-16">
+        <div class="absolute inset-0 grid-bg-dark opacity-50"></div>
+        <div class="absolute -top-24 -right-24 w-[400px] h-[400px] rounded-full bg-signal-500/15 blur-3xl pointer-events-none"></div>
+
+        <div class="relative max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm mb-6">
+            <span class="w-1.5 h-1.5 rounded-full bg-signal-500"></span>
+            <span class="text-[10px] font-bold text-white/90 tracking-[0.16em] uppercase">Disponível para implantação</span>
+          </div>
+
+          <h2 class="text-[32px] md:text-[40px] font-bold text-white tracking-tight leading-[1.1]">
+            Pronto para eliminar o trabalho manual do setor?
+          </h2>
+          <p class="mt-4 text-[15.5px] text-petrol-100/85 leading-relaxed">
+            Fale com a equipe para uma demonstração em ambiente controlado com dados reais da sua frota. Roda 100% local — nenhum dado sai do seu computador.
+          </p>
+
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#" class="inline-flex items-center gap-2 h-11 px-6 rounded-md bg-white hover:bg-slate-100 text-petrol-700 text-[13px] font-bold transition">
+              Solicitar demonstração
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="#componentes" class="inline-flex items-center gap-2 h-11 px-6 rounded-md bg-transparent border border-white/25 hover:bg-white/10 text-white text-[13px] font-semibold transition">
+              Revisar interface
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════════════ -->
+  <footer class="border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-6 py-12">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+
+        <div class="col-span-2 md:col-span-1">
+          <div class="flex items-center gap-2.5 mb-3">
+            <div class="w-8 h-8 rounded-md bg-petrol-600 flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h18M3 6h18M3 18h18"/>
+              </svg>
+            </div>
+            <span class="text-[13px] font-bold text-slate-900">Petroleum Fleet</span>
+          </div>
+          <p class="text-[12px] text-slate-500 leading-relaxed">
+            Automação local para gestão de infrações e emissão de ofícios.
+          </p>
+        </div>
+
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Produto</div>
+          <ul class="space-y-2 text-[13px] text-slate-600">
+            <li><a href="#solucao" class="hover:text-petrol-700 transition">Módulos</a></li>
+            <li><a href="#como-funciona" class="hover:text-petrol-700 transition">Pipeline</a></li>
+            <li><a href="#componentes" class="hover:text-petrol-700 transition">Interface</a></li>
+            <li><a href="#roadmap" class="hover:text-petrol-700 transition">Roadmap</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Recursos</div>
+          <ul class="space-y-2 text-[13px] text-slate-600">
+            <li><a href="#" class="hover:text-petrol-700 transition">Documentação</a></li>
+            <li><a href="#" class="hover:text-petrol-700 transition">Changelog</a></li>
+            <li><a href="#" class="hover:text-petrol-700 transition">Suporte</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Empresa</div>
+          <ul class="space-y-2 text-[13px] text-slate-600">
+            <li><a href="#" class="hover:text-petrol-700 transition">Sobre</a></li>
+            <li><a href="#" class="hover:text-petrol-700 transition">Privacidade</a></li>
+            <li><a href="#" class="hover:text-petrol-700 transition">Contato</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+        <span class="text-[11.5px] text-slate-500">© 2025 Petroleum Fleet · Todos os direitos reservados.</span>
+        <span class="font-mono text-[11px] text-slate-400">#0F4C5C · #F59E0B · Slate</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

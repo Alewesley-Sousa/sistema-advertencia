@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   salvarConfiguracao,
   type Configuracao,
-} from '../../../services/configuracoes'
+} from '../../../features/configuracoes/services/configuracoes'
 import { showToast } from '../../../components/ui/Toast'
 
 const CHAVE_EMAIL = 'email_notificacao'
@@ -21,7 +21,6 @@ export function useEmailsNotificacao({
   const [emails, setEmails] = useState<string[]>([])
   const [salvando, setSalvando] = useState(false)
 
-  // Sincroniza lista local com o que veio do backend
   useEffect(() => {
     const lista = Array.isArray(configs) ? configs : []
     const configEmail = lista.find((c) => c.chave === CHAVE_EMAIL)
@@ -85,6 +84,39 @@ export function useEmailsNotificacao({
     [emails, persistir]
   )
 
+  /* ═══ NOVO ═══
+     Atualização atômica: mapeia a lista uma única vez e persiste
+     uma única vez. Evita o race condition de "remover + adicionar"
+     sequenciais, que capturariam closures diferentes de `emails`. */
+  const editar = useCallback(
+    (emailOriginal: string, emailNovoBruto: string): boolean => {
+      const emailNovo = emailNovoBruto.trim().toLowerCase()
+
+      if (!emailNovo) return false
+
+      if (!emailNovo.includes('@') || !emailNovo.includes('.')) {
+        showToast.error('Por favor, informe um e-mail válido.')
+        return false
+      }
+
+      // Mesmo endereço após normalização — nada a fazer.
+      if (emailNovo === emailOriginal) return true
+
+      if (emails.includes(emailNovo)) {
+        showToast.error('Este e-mail já está cadastrado.')
+        return false
+      }
+
+      const novaLista = emails.map((e) =>
+        e === emailOriginal ? emailNovo : e
+      )
+      setEmails(novaLista)
+      persistir(novaLista)
+      return true
+    },
+    [emails, persistir]
+  )
+
   const remover = useCallback(
     (email: string) => {
       const novaLista = emails.filter((e) => e !== email)
@@ -94,5 +126,5 @@ export function useEmailsNotificacao({
     [emails, persistir]
   )
 
-  return { emails, salvando, adicionar, remover }
+  return { emails, salvando, adicionar, editar, remover }
 }

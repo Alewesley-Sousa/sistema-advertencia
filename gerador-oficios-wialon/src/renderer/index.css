@@ -1,5 +1,217 @@
+/* ════════════════════════════════════════════════════════════════
+   TAILWIND
+   ════════════════════════════════════════════════════════════════ */
 @import "tailwindcss";
 
+
+/* ════════════════════════════════════════════════════════════════
+   DARK MODE — toggle por classe (.dark no <html>)
+   ════════════════════════════════════════════════════════════════ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* ════════════════════════════════════════════════════════════════
+   FONTES LOCAIS (woff2 em /public/fonts/)
+   ════════════════════════════════════════════════════════════════ */
+
+/* Inter — variável (100–900) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2-variations');
+}
+
+/* JetBrains Mono — estática (400 e 700) */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   THEME — Petroleum Fleet Design System
+   ════════════════════════════════════════════════════════════════ */
+@theme {
+
+  /* ── Tipografia ─────────────────────────────────────────────── */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── Primária · Petroleum Blue ──────────────────────────────── */
+  --color-petrol-50:  #F0F6F7;
+  --color-petrol-100: #E8F1F3;
+  --color-petrol-200: #C6DDE2;
+  --color-petrol-300: #93BFC8;
+  --color-petrol-400: #5A98A5;
+  --color-petrol-500: #2E7A8A;
+  --color-petrol-600: #0F4C5C;  /* ← tom principal */
+  --color-petrol-700: #0D4150;
+  --color-petrol-800: #0B3542;
+  --color-petrol-900: #082732;
+  --color-petrol-950: #041821;
+
+  /* ── Acento · Signal Amber ──────────────────────────────────── */
+  --color-signal-50:  #FFFBEB;
+  --color-signal-100: #FEF3C7;
+  --color-signal-200: #FDE68A;
+  --color-signal-300: #FCD34D;
+  --color-signal-400: #FBBF24;
+  --color-signal-500: #F59E0B;  /* ← tom principal */
+  --color-signal-600: #D97706;
+  --color-signal-700: #B45309;
+  --color-signal-800: #92400E;
+  --color-signal-900: #78350F;
+
+  /* ── Semânticas de status (aliases nomeados) ────────────────── */
+  --color-status-quitado:        #10B981;
+  --color-status-quitado-soft:   #ECFDF5;
+  --color-status-quitado-border: #A7F3D0;
+
+  --color-status-pendente:        #F59E0B;
+  --color-status-pendente-soft:   #FFFBEB;
+  --color-status-pendente-border: #FDE68A;
+
+  --color-status-erro:        #F43F5E;
+  --color-status-erro-soft:   #FFF1F2;
+  --color-status-erro-border: #FECDD3;
+
+  --color-status-ignorado:        #94A3B8;
+  --color-status-ignorado-soft:   #F8FAFC;
+  --color-status-ignorado-border: #E2E8F0;
+
+  /* ── Ciclo de vida do registro ──────────────────────────────── */
+  --color-lifecycle-registrado: #64748B;
+  --color-lifecycle-gerado:     #2E7A8A;
+  --color-lifecycle-enviado:    #10B981;
+  --color-lifecycle-erro:       #F43F5E;
+  --color-lifecycle-ignorado:   #94A3B8;
+
+  /* ── Raios ──────────────────────────────────────────────────── */
+  --radius-card:    0.75rem;   /* 12px */
+  --radius-control: 0.375rem;  /* 6px  */
+
+  /* ── Sombras institucionais ─────────────────────────────────── */
+  --shadow-card:  0 1px 2px 0 rgba(15, 76, 92, 0.04);
+  --shadow-lift:  0 4px 12px -2px rgba(15, 76, 92, 0.08),
+                  0 2px 4px  -1px rgba(15, 76, 92, 0.04);
+  --shadow-modal: 0 20px 40px -8px rgba(15, 76, 92, 0.18),
+                  0 8px  16px -4px rgba(15, 76, 92, 0.08);
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   BASE
+   ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   BASE
+   ════════════════════════════════════════════════════════════════ */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #0f172a;              /* slate-900 */
+    background-color: #f8fafc;   /* slate-50  */
+  }
+
+  .dark body {
+    color: #f1f5f9;              /* slate-100 */
+    background-color: #041821;   /* petrol-950 */
+  }
+
+  /* Seleção de texto na cor de marca (claro) */
+  ::selection {
+    background-color: rgba(15, 76, 92, 0.15);
+    color: #082732;
+  }
+
+  /* Seleção de texto na cor de marca (escuro) */
+  .dark ::selection {
+    background-color: rgba(90, 152, 165, 0.28);
+    color: #F0F6F7;
+  }
+
+  /* Focus ring consistente em todo o app */
+  *:focus-visible {
+    outline: 2px solid var(--color-petrol-600);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .dark *:focus-visible {
+    outline-color: var(--color-petrol-400);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     Transição suave ao trocar tema.
+
+     A classe .theme-transition é adicionada ao <html> por ~220ms
+     durante o toggle. Ela acelera as transições de cor/fundo em
+     todos os elementos — MAS ignora qualquer elemento marcado com
+     `[data-theme-transition-ignore]` e seus descendentes.
+
+     Isso permite que componentes com animação própria longa (como
+     o ThemeToggle, com máscara deslizante em 800ms e raios que
+     brotam) mantenham seus tempos, sem serem cortados pelos 180ms
+     do resto da página.
+     ────────────────────────────────────────────────────────────── */
+  html.theme-transition *:not([data-theme-transition-ignore], [data-theme-transition-ignore] *),
+  html.theme-transition *:not([data-theme-transition-ignore], [data-theme-transition-ignore] *)::before,
+  html.theme-transition *:not([data-theme-transition-ignore], [data-theme-transition-ignore] *)::after {
+    transition: background-color 180ms ease-out,
+                border-color     180ms ease-out,
+                color            180ms ease-out,
+                fill             180ms ease-out,
+                stroke           180ms ease-out !important;
+    transition-delay: 0s !important;
+  }
+
+  /* Scrollbar consistente no dark */
+  .dark {
+    color-scheme: dark;
+  }
+  .dark ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: #041821;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #0B3542;
+    border-radius: 6px;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #0D4150;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   ANIMAÇÕES
+   ════════════════════════════════════════════════════════════════ */
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -10,3 +222,81 @@
 }
 .animate-fade-in  { animation: fade-in  200ms ease-out; }
 .animate-modal-in { animation: modal-in 220ms ease-out; }
+
+/* Animações específicas do módulo de infrações */
+@keyframes soft-ping {
+  0%   { transform: scale(.7); opacity: .5; }
+  80%  { transform: scale(2);   opacity: 0; }
+  100% { transform: scale(2);   opacity: 0; }
+}
+.soft-ping { animation: soft-ping 2.6s cubic-bezier(0,0,.2,1) infinite; }
+
+@keyframes slide-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.slide-in { animation: slide-in 260ms cubic-bezier(.16,1,.3,1); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   UTILITÁRIOS DE PROJETO
+   ════════════════════════════════════════════════════════════════ */
+
+/* Linha selecionada em tabela — indicador petróleo na lateral */
+.row-selected {
+  background: linear-gradient(90deg, rgba(15, 76, 92, 0.06), rgba(15, 76, 92, 0) 42%);
+  box-shadow: inset 3px 0 0 0 var(--color-petrol-600);
+}
+.dark .row-selected {
+  background: linear-gradient(90deg, rgba(90, 152, 165, 0.12), rgba(90, 152, 165, 0) 42%);
+  box-shadow: inset 3px 0 0 0 var(--color-petrol-400);
+}
+
+/* Label de seção (eyebrow) */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8; /* slate-400 */
+}
+.dark .section-label {
+  color: #64748b; /* slate-500 */
+}
+
+/* Números mono-alinhados — tabelas e métricas */
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  letter-spacing: -0.01em;
+}
+
+/* Superfície operacional padrão (card azul-petróleo suave) */
+.surface-operational {
+  background-color: var(--color-petrol-100);
+  border: 1px solid rgba(15, 76, 92, 0.15);
+  border-radius: var(--radius-card);
+}
+.dark .surface-operational {
+  background-color: rgba(11, 53, 66, 0.6);   /* petrol-800/60 */
+  border-color: rgba(90, 152, 165, 0.2);
+}
+
+/* Grid decorativo (hero e seções escuras) */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(15, 76, 92, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 76, 92, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.dark .grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+.grid-bg-dark {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+}

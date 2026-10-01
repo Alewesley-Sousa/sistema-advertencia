@@ -1,5 +1,7 @@
+// src/renderer/features/infracoes/components/InfracaoTable.tsx
+
 import { Loader2 } from 'lucide-react'
-import type { Infracao } from '../../../services/infracoes'
+import type { Infracao } from '../services/infracoes'
 import { InfracaoTableRow } from './InfracaoTableRow'
 import {
   Table,
@@ -54,14 +56,15 @@ export function InfracaoTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-b border-slate-200">
+        <TableRow className="border-b border-slate-200 dark:border-petrol-700 transition-colors">
           <TableHead
             sortable
-            sortDirection={dir('created_at')}
-            onSort={() => onOrdenar('created_at')}
+            sortDirection={dir('data_hora')}
+            onSort={() => onOrdenar('data_hora')}
           >
-            ID / Data
+            ID / Data da Ocorrência
           </TableHead>
+
           <TableHead
             sortable
             sortDirection={dir('condutor')}
@@ -69,6 +72,7 @@ export function InfracaoTable({
           >
             Condutor / Placa
           </TableHead>
+
           <TableHead
             sortable
             sortDirection={dir('velocidade')}
@@ -76,6 +80,7 @@ export function InfracaoTable({
           >
             Velocidade
           </TableHead>
+
           <TableHead>Endereço</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-center">Ações</TableHead>
@@ -85,9 +90,12 @@ export function InfracaoTable({
       <TableBody>
         {loading ? (
           <tr>
-            <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
+            <td
+              colSpan={6}
+              className="py-8 text-center text-slate-400 dark:text-petrol-300/60 text-xs transition-colors"
+            >
               <div className="inline-flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-cyan-600" />
+                <Loader2 className="w-4 h-4 animate-spin text-petrol-600 dark:text-petrol-400" />
                 {loadingMessage}
               </div>
             </td>

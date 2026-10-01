@@ -29,12 +29,12 @@ interface DetranProgressCardProps {
 
 function IconeItem({ status }: { status: ProgressoItemStatus }) {
   if (status === 'ok') {
-    return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+    return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 transition-colors" />
   }
   if (status === 'erro') {
-    return <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+    return <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 transition-colors" />
   }
-  return <Ban className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+  return <Ban className="w-3.5 h-3.5 text-slate-400 dark:text-petrol-300/50 shrink-0 transition-colors" />
 }
 
 /* ---------- Sub-render: linha do item ---------- */
@@ -43,9 +43,13 @@ function LinhaItem({ item }: { item: ProgressoItem }) {
   return (
     <li className="flex items-center gap-2 text-xs">
       <IconeItem status={item.status} />
-      <span className="font-mono font-semibold text-slate-700">{item.placa}</span>
+      <span className="font-mono font-semibold text-slate-700 dark:text-petrol-100 transition-colors">
+        {item.placa}
+      </span>
       {item.mensagem && (
-        <span className="text-slate-400 truncate">— {item.mensagem}</span>
+        <span className="text-slate-400 dark:text-petrol-300/50 truncate transition-colors">
+          — {item.mensagem}
+        </span>
       )}
     </li>
   )
@@ -72,7 +76,6 @@ export function DetranProgressCard({
   const cancelado = status === 'CANCELADO'
   const rodando = status === 'PROCESSANDO'
 
-  // Últimos 5 itens na ordem em que foram processados (mais recente primeiro)
   const ultimosItens = [...itens].slice(-5).reverse()
 
   return (
@@ -80,10 +83,10 @@ export function DetranProgressCard({
       padding="md"
       className={cn(
         'space-y-4 transition-colors',
-        concluido && 'border-emerald-200 bg-emerald-50/30',
-        cancelado && 'border-slate-200 bg-slate-50/50',
-        rodando && variante === 'simulacao' && 'border-amber-200',
-        rodando && variante === 'real' && 'border-cyan-200'
+        concluido && 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-950/20',
+        cancelado && 'border-slate-200 dark:border-petrol-800 bg-slate-50/50 dark:bg-petrol-900/40',
+        rodando && variante === 'simulacao' && 'border-amber-200 dark:border-amber-900/50',
+        rodando && variante === 'real' && 'border-petrol-600/30 dark:border-petrol-500/40'
       )}
     >
       {/* ================= Header ================= */}
@@ -91,10 +94,10 @@ export function DetranProgressCard({
         <div className="flex items-center gap-2.5 min-w-0">
           <div
             className={cn(
-              'p-2 rounded-xl border shrink-0',
-              concluido && 'bg-emerald-50 text-emerald-600 border-emerald-200',
-              cancelado && 'bg-slate-100 text-slate-500 border-slate-200',
-              rodando && 'bg-cyan-50 text-cyan-600 border-cyan-200'
+              'p-2 rounded-xl border shrink-0 transition-colors',
+              concluido && 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50',
+              cancelado && 'bg-slate-100 dark:bg-petrol-900 text-slate-500 dark:text-petrol-300/60 border-slate-200 dark:border-petrol-800',
+              rodando && 'bg-petrol-50 dark:bg-petrol-800/60 text-petrol-600 dark:text-petrol-300 border-petrol-600/20 dark:border-petrol-500/30'
             )}
           >
             {concluido ? (
@@ -107,14 +110,14 @@ export function DetranProgressCard({
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-slate-800 truncate">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate transition-colors">
               {concluido
                 ? 'Lote concluído'
                 : cancelado
                   ? 'Lote cancelado'
                   : 'Processando lote de veículos'}
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-petrol-300/60 mt-0.5 transition-colors">
               {concluido ? (
                 <>
                   {processados} de {total} processado{total === 1 ? '' : 's'}
@@ -126,7 +129,7 @@ export function DetranProgressCard({
               ) : (
                 <>
                   Processando{' '}
-                  <span className="font-mono font-semibold text-slate-700">
+                  <span className="font-mono font-semibold text-slate-700 dark:text-petrol-100">
                     {itemAtual || '...'}
                   </span>{' '}
                   — {processados} de {total}
@@ -138,7 +141,7 @@ export function DetranProgressCard({
 
         <div className="flex items-center gap-2 shrink-0">
           {variante === 'simulacao' && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded-full transition-colors">
               <Sparkles className="w-3 h-3" />
               Simulação
             </span>
@@ -150,7 +153,7 @@ export function DetranProgressCard({
               size="icon"
               onClick={onFechar}
               title="Fechar"
-              className="text-slate-400 hover:text-slate-700"
+              className="text-slate-400 dark:text-petrol-300/60 hover:text-slate-700 dark:hover:text-white"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -167,13 +170,13 @@ export function DetranProgressCard({
 
       {/* ================= Barra ================= */}
       <div className="space-y-1.5">
-        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+        <div className="w-full bg-slate-100 dark:bg-petrol-800 rounded-full h-2.5 overflow-hidden transition-colors">
           <div
             className={cn(
               'h-2.5 rounded-full transition-all duration-500 ease-out relative',
-              concluido && 'bg-emerald-500',
-              cancelado && 'bg-slate-400',
-              rodando && 'bg-cyan-500'
+              concluido && 'bg-emerald-500 dark:bg-emerald-400',
+              cancelado && 'bg-slate-400 dark:bg-petrol-500',
+              rodando && 'bg-petrol-500 dark:bg-petrol-400'
             )}
             style={{ width: `${percentual}%` }}
           >
@@ -187,8 +190,10 @@ export function DetranProgressCard({
         </div>
 
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-slate-500">{percentual}% concluído</span>
-          <span className="text-slate-400">
+          <span className="text-slate-500 dark:text-petrol-300/60 transition-colors">
+            {percentual}% concluído
+          </span>
+          <span className="text-slate-400 dark:text-petrol-300/50 transition-colors">
             {processados}/{total}
           </span>
         </div>
@@ -196,8 +201,8 @@ export function DetranProgressCard({
 
       {/* ================= Últimos itens ================= */}
       {ultimosItens.length > 0 && (
-        <div className="border-t border-slate-100 pt-3 space-y-1.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="border-t border-slate-100 dark:border-petrol-800 pt-3 space-y-1.5 transition-colors">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-petrol-300/50 uppercase tracking-wider transition-colors">
             Últimos processados
           </span>
           <ul className="space-y-1">

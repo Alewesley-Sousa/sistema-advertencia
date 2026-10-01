@@ -24,3 +24,24 @@ export interface DetranProgresso {
   /** 'simulacao' mostra um badge amarelo indicando que não é real */
   variante?: 'real' | 'simulacao'
 }
+
+/* ==========================================================================
+ * Boletos
+ * ======================================================================== */
+
+/**
+ * Estado derivado de cada boleto de multa.
+ *
+ * Não vem do backend — é calculado a partir de:
+ *   - `caminhoPdf`  → BAIXADO
+ *   - `erroEmissao` → FALHA
+ *   - nenhum dos dois → PENDENTE
+ */
+export type BoletoStatus = 'BAIXADO' | 'FALHA' | 'PENDENTE'
+
+export interface ResumoBoletos {
+  baixados: number
+  falhas: number
+  pendentes: number
+  total: number
+}

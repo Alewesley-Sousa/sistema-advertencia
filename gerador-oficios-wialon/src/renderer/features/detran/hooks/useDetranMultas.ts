@@ -1,7 +1,7 @@
 // src/renderer/features/detran/hooks/useDetranMultas.ts
 
 import { useCallback, useState } from 'react'
-import { listarMultasDaConsulta, type MultaDetran } from '../../../services/detran'
+import { listarMultasDaConsulta, type MultaDetran } from '../services/detran'
 import { showToast } from '../../../components/ui/Toast'
 
 export function useDetranMultas() {

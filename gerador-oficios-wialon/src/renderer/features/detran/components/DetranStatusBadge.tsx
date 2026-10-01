@@ -1,3 +1,5 @@
+// src/renderer/features/detran/components/DetranStatusBadge.tsx
+
 import { CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 
@@ -31,7 +33,7 @@ function getConfig(status: string): StatusConfig {
     case 'PROCESSANDO':
     case 'PENDENTE':
       return {
-        variant: 'info',
+        variant: 'petrol',
         label: 'Em Processamento',
         Icon: Clock,
         iconClass: 'w-3.5 h-3.5 animate-spin',

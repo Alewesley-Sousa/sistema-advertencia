@@ -15,7 +15,7 @@ import { DetranMultaStatusBadge } from './DetranMultaStatusBadge'
 import {
   obterUrlPdfMultaDetran,
   type MultaDetran,
-} from '../../../services/detran'
+} from '../services/detran'
 
 interface DetranMultasModalProps {
   open: boolean
@@ -42,7 +42,7 @@ export function DetranMultasModal({
     >
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-slate-200">
+          <TableRow className="border-b border-slate-200 dark:border-petrol-800 transition-colors">
             <TableHead>AIT</TableHead>
             <TableHead>Motivo</TableHead>
             <TableHead>Data Infração</TableHead>
@@ -56,9 +56,12 @@ export function DetranMultasModal({
         <TableBody>
           {carregando ? (
             <tr>
-              <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+              <td
+                colSpan={7}
+                className="py-8 text-center text-slate-400 dark:text-petrol-300/60 text-xs transition-colors"
+              >
                 <div className="inline-flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-cyan-600" />
+                  <Loader2 className="w-4 h-4 animate-spin text-petrol-600 dark:text-petrol-300" />
                   Carregando multas...
                 </div>
               </td>
@@ -66,19 +69,19 @@ export function DetranMultasModal({
           ) : multas.length > 0 ? (
             multas.map((multa, idx) => (
               <TableRow key={multa.id ?? multa.ait ?? idx}>
-                <TableCell className="font-mono text-xs font-semibold text-slate-800">
+                <TableCell className="font-mono text-xs font-semibold text-slate-800 dark:text-petrol-100">
                   {multa.ait}
                 </TableCell>
-                <TableCell className="text-xs text-slate-600 max-w-xs">
+                <TableCell className="text-xs text-slate-600 dark:text-petrol-200/80 max-w-xs">
                   {multa.motivo}
                 </TableCell>
-                <TableCell className="text-xs text-slate-600">
+                <TableCell className="text-xs text-slate-600 dark:text-petrol-200/80">
                   {multa.dataInfracao}
                 </TableCell>
-                <TableCell className="text-xs text-slate-600">
+                <TableCell className="text-xs text-slate-600 dark:text-petrol-200/80">
                   {multa.dataVencimento}
                 </TableCell>
-                <TableCell className="text-xs font-bold text-slate-800">
+                <TableCell className="text-xs font-bold text-slate-800 dark:text-petrol-100">
                   {multa.valorPagar}
                 </TableCell>
                 <TableCell>
@@ -90,12 +93,14 @@ export function DetranMultasModal({
                       href={obterUrlPdfMultaDetran(multa.id)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-600 hover:text-cyan-700"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-petrol-600 dark:text-petrol-300 hover:text-petrol-700 dark:hover:text-petrol-200 transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" /> Baixar
                     </a>
                   ) : (
-                    <span className="text-xs text-slate-400">-</span>
+                    <span className="text-xs text-slate-400 dark:text-petrol-300/40 transition-colors">
+                      -
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
