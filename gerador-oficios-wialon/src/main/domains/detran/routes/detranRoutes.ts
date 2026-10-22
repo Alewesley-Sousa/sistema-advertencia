@@ -3,6 +3,7 @@ import { Router } from 'express'
 import {
   consultarVeiculoAvulso,
   listarConsultasDetran,
+  obterRelatoriosDetran,
   baixarPdfDetran,
   processarLoteDetran,
   baixarPdfMultaDetran,
@@ -18,6 +19,7 @@ detranRoutes.post('/consultar', consultarVeiculoAvulso)
 
 // Ajustado para 'historico'
 detranRoutes.get('/historico', listarConsultasDetran) 
+detranRoutes.get('/relatorios', obterRelatoriosDetran)
 
 detranRoutes.get('/pdf/:id', baixarPdfDetran)
 

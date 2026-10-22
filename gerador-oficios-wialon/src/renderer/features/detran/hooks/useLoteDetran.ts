@@ -6,6 +6,7 @@ import {
   processarLoteDetran,
   consultarStatusLote,
   type ItemVeiculoLote,
+  type ProcessarLotePayload,
 } from '../services/detran'
 import { showToast } from '../../../components/ui/Toast'
 import {
@@ -27,10 +28,16 @@ function valorDe(
   row: Record<string, any>,
   chavesAceitas: string[]
 ): { valor: string; chaveUsada: string | null } {
-  const chavesLower = chavesAceitas.map((c) => c.toLowerCase().trim())
+  const normalizarChave = (chave: string) =>
+    chave
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+  const chavesLower = chavesAceitas.map(normalizarChave)
 
   for (const k of Object.keys(row)) {
-    if (chavesLower.includes(k.toLowerCase().trim())) {
+    if (chavesLower.includes(normalizarChave(k))) {
       const v = row[k]
       if (v !== undefined && v !== null) {
         return { valor: String(v).trim(), chaveUsada: k }
@@ -65,6 +72,10 @@ export function useLoteDetran(onConcluido?: () => void) {
           ? {
               ...prev,
               status: statusFinal === 'CONCLUIDO' ? 'CONCLUIDO' : 'ERRO',
+              processados:
+                statusFinal === 'CONCLUIDO' ? prev.total : prev.processados,
+              percentual:
+                statusFinal === 'CONCLUIDO' ? 100 : prev.percentual,
               itemAtual:
                 statusFinal === 'CONCLUIDO' ? 'Concluído' : mensagem || 'Erro',
             }
@@ -137,7 +148,7 @@ export function useLoteDetran(onConcluido?: () => void) {
   )
 
   const processarArquivo = useCallback(
-    async (file: File) => {
+    async (file: File, modoBusca: NonNullable<ProcessarLotePayload['modoBusca']>) => {
       try {
         setProcessando(true)
         ultimoProcessadoRef.current = 0
@@ -181,6 +192,20 @@ export function useLoteDetran(onConcluido?: () => void) {
               'chassis',
               'chassi/renavam',
             ])
+            const { valor: modeloBruto } = valorDe(row, [
+              'modelo',
+              'modelo do veículo',
+              'modelo veículo',
+              'veículo/modelo',
+            ])
+            const { valor: contratoBruto } = valorDe(row, [
+              'contrato',
+              'contrato da frota',
+              'contrato/cliente',
+              'cliente',
+              'empresa',
+              'contratante',
+            ])
 
             const placa = normalizarPlaca(placaBruta)
             const chassi = normalizarChassi(chassiBruto)
@@ -192,7 +217,12 @@ export function useLoteDetran(onConcluido?: () => void) {
               chassisAjustados++
             }
 
-            return { placa, chassi }
+            return {
+              placa,
+              chassi,
+              modelo: modeloBruto || undefined,
+              contrato: contratoBruto || undefined,
+            }
           })
           .filter((v) => v.placa && v.chassi)
 
@@ -253,6 +283,7 @@ export function useLoteDetran(onConcluido?: () => void) {
         const resposta = await processarLoteDetran({
           nomeArquivo: file.name,
           veiculos,
+          modoBusca,
         })
 
         setProgresso((prev) =>

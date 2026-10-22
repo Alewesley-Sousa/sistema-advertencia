@@ -1,7 +1,7 @@
 // src/renderer/features/detran/components/DetranProgressModal.tsx
 
 import { Modal } from '../../../components/ui/Modal'
-import { Loader2, ChevronUp, X, CheckCircle2 } from 'lucide-react'
+import { Loader2, ChevronUp, X, CheckCircle2, CircleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { DetranProgresso } from '../types'
 
@@ -26,7 +26,10 @@ export function DetranProgressModal({
   if (!progresso) return null
 
   const terminou =
-    progresso.status === 'CONCLUIDO' || progresso.status === 'CANCELADO'
+    progresso.status === 'CONCLUIDO' ||
+    progresso.status === 'CANCELADO' ||
+    progresso.status === 'ERRO'
+  const erro = progresso.status === 'ERRO'
 
   const itens = progresso.itens ?? []
   const sucesso = itens.filter((i) => i.status === 'ok').length
@@ -49,21 +52,41 @@ export function DetranProgressModal({
         {/* Header */}
         <div className="pb-5 mb-6 border-b border-slate-100 dark:border-petrol-800 transition-colors">
           <div className="flex items-center gap-2 mb-3">
-            <span className="relative flex w-1.5 h-1.5">
-              <span className="absolute inline-flex w-full h-full rounded-full bg-petrol-500 opacity-60 animate-ping" />
-              <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-petrol-600 dark:bg-petrol-400" />
-            </span>
-            <span className="text-[10px] font-bold text-petrol-700 dark:text-petrol-300 tracking-[0.16em] uppercase transition-colors">
-              Operação em andamento
+            {terminou ? (
+              erro ? (
+                <CircleAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              )
+            ) : (
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-petrol-500 opacity-60 animate-ping" />
+                <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-petrol-600 dark:bg-petrol-400" />
+              </span>
+            )}
+            <span className={`text-[11px] font-bold tracking-[0.12em] uppercase transition-colors ${
+              erro
+                ? 'text-rose-700 dark:text-rose-400'
+                : terminou
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : 'text-petrol-700 dark:text-petrol-300'
+            }`}>
+              {erro ? 'Consulta encerrada com erro' : terminou ? 'Consulta finalizada' : 'Operação em andamento'}
             </span>
           </div>
           <h3 className="text-[16px] font-bold text-slate-900 dark:text-white transition-colors">
-            {terminou ? 'Consulta concluída' : 'Processando consultas DETRAN'}
+            {erro
+              ? 'Não foi possível concluir o lote'
+              : terminou
+                ? 'Consulta concluída'
+                : 'Processando consultas DETRAN'}
           </h3>
           <p className="text-[12.5px] text-slate-500 dark:text-petrol-300/60 mt-1 transition-colors">
-            {terminou
-              ? `${progresso.total} veículos processados`
-              : 'Aguarde enquanto consultamos os veículos no portal do DETRAN-CE.'}
+            {erro
+              ? `${progresso.processados} de ${progresso.total} veículos processados. ${progresso.itemAtual}`
+              : terminou
+                ? `${progresso.total} veículos processados`
+                : 'Aguarde enquanto consultamos os veículos no portal do DETRAN-CE.'}
           </p>
         </div>
 
@@ -79,7 +102,13 @@ export function DetranProgressModal({
 
         <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-petrol-800 overflow-hidden mb-2 transition-colors">
           <div
-            className="h-full rounded-full bg-petrol-500 dark:bg-petrol-400 transition-all duration-300"
+            className={`h-full rounded-full transition-all duration-300 ${
+              erro
+                ? 'bg-rose-500'
+                : terminou
+                  ? 'bg-emerald-500 dark:bg-emerald-400'
+                  : 'bg-petrol-500 dark:bg-petrol-400'
+            }`}
             style={{ width: `${progresso.percentual}%` }}
           />
         </div>
@@ -87,7 +116,7 @@ export function DetranProgressModal({
           <span>
             {progresso.processados} de {progresso.total}
           </span>
-          <span>{terminou ? 'Concluído' : 'Em andamento'}</span>
+          <span>{erro ? 'Encerrado com erro' : terminou ? 'Concluído' : 'Em andamento'}</span>
         </div>
 
         {/* Contadores */}
@@ -132,9 +161,25 @@ export function DetranProgressModal({
             Atividade recente
           </div>
           {ultimos.length === 0 ? (
-            <div className="flex items-center gap-2 text-[11.5px] text-slate-400 dark:text-petrol-300/50 transition-colors">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Iniciando processamento...
+            <div className={`flex items-center gap-2 text-[12px] transition-colors ${
+              erro
+                ? 'text-rose-700 dark:text-rose-400'
+                : terminou
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : 'text-slate-400 dark:text-petrol-300/50'
+            }`}>
+              {erro ? (
+                <CircleAlert className="w-4 h-4" />
+              ) : terminou ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              )}
+              {erro
+                ? progresso.itemAtual || 'O lote foi encerrado com erro.'
+                : terminou
+                  ? 'Processamento concluído.'
+                  : 'Iniciando processamento...'}
             </div>
           ) : (
             <ul className="space-y-2 text-[11.5px]">
@@ -160,7 +205,7 @@ export function DetranProgressModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 pt-5 mt-6 border-t border-slate-100 dark:border-petrol-800 transition-colors">
+      <div className="flex items-center justify-end gap-2 pt-5 mt-6 border-t border-slate-100 dark:border-petrol-800 transition-colors">
           {!terminou && (
             <button
               type="button"
@@ -186,6 +231,7 @@ export function DetranProgressModal({
         <MiniLoteWidget
           progresso={progresso}
           terminou={terminou}
+          erro={erro}
           onExpandir={() => setMinimizado(false)}
           onFechar={terminou ? onFechar : undefined}
         />
@@ -199,11 +245,13 @@ export function DetranProgressModal({
 function MiniLoteWidget({
   progresso,
   terminou,
+  erro,
   onExpandir,
   onFechar,
 }: {
   progresso: DetranProgresso
   terminou: boolean
+  erro: boolean
   onExpandir: () => void
   onFechar?: () => void
 }) {
@@ -248,15 +296,21 @@ function MiniLoteWidget({
                 <span
                   className={`relative inline-flex rounded-full w-1.5 h-1.5 transition-colors ${
                     terminou
-                      ? 'bg-emerald-500 dark:bg-emerald-400'
-                      : 'bg-petrol-600 dark:bg-petrol-400'
+                      ? erro
+                        ? 'Consulta encerrada com erro'
+                        : 'Consulta concluída'
+                      : 'Consulta em lote'}
                   }`}
                 />
               </span>
 
               <div className="min-w-0">
                 <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate transition-colors">
-                  {terminou ? 'Consulta concluída' : 'Consulta em lote'}
+                  {erro
+                    ? 'Consulta encerrada com erro'
+                    : terminou
+                      ? 'Consulta concluída'
+                      : 'Consulta em lote'}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-petrol-300/60 font-mono mt-0.5 transition-colors">
                   {progresso.processados} / {progresso.total} ·{' '}
@@ -315,9 +369,11 @@ function MiniLoteWidget({
             <div className="w-full h-1 rounded-full bg-slate-100 dark:bg-petrol-800 overflow-hidden transition-colors">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  terminou
-                    ? 'bg-emerald-500 dark:bg-emerald-400'
-                    : 'bg-petrol-500 dark:bg-petrol-400'
+                  erro
+                    ? 'bg-rose-500'
+                    : terminou
+                      ? 'bg-emerald-500 dark:bg-emerald-400'
+                      : 'bg-petrol-500 dark:bg-petrol-400'
                 }`}
                 style={{ width: `${progresso.percentual}%` }}
               />

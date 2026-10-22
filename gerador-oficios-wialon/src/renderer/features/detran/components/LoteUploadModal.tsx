@@ -6,17 +6,24 @@ import {
   FileSpreadsheet,
   X,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   FolderOpen,
+  Gauge,
+  Zap,
 } from 'lucide-react'
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
 import { cn } from '../../../lib/cn'
+import type { ProcessarLotePayload } from '../services/detran'
 
 interface LoteUploadModalProps {
   open: boolean
   onClose: () => void
-  onEnviar: (file: File) => void
+  onEnviar: (
+    file: File,
+    modoBusca: NonNullable<ProcessarLotePayload['modoBusca']>
+  ) => void
   disabled?: boolean
 }
 
@@ -25,9 +32,9 @@ const EXTENSOES_VALIDAS = ['xlsx', 'xls', 'csv']
 const TAMANHO_MAX_MB = 10
 
 const EXEMPLO = [
-  ['ABC1D23', '9BWZZZ377VT004251'],
-  ['DEF4G56', '9BWYYY377VT004252'],
-  ['GHI7J89', '9BWXXX377VT004253'],
+  ['ABC1D23', '9BWZZZ377VT004251', 'Civic', 'SPS'],
+  ['DEF4G56', '9BWYYY377VT004252', 'Corolla', 'BNB'],
+  ['GHI7J89', '9BWXXX377VT004253', 'Onix', 'SPS'],
 ]
 
 function formatarTamanho(bytes: number): string {
@@ -117,77 +124,65 @@ function EstruturaPlanilha() {
       </div>
 
       <div
-        className="rounded-md overflow-hidden bg-white dark:bg-petrol-950 transition-colors"
+        className="overflow-x-auto rounded-md bg-white dark:bg-petrol-950 transition-colors"
         style={{ border: '1px solid var(--lote-line)' }}
       >
+        <div className="min-w-[480px]">
         {/* Letras das colunas */}
         <div
-          className="grid grid-cols-2"
+          className="grid grid-cols-4"
           style={{ backgroundColor: 'var(--lote-hero-bg)' }}
         >
-          <div
-            className="py-1.5 text-center text-[10px] font-bold font-mono tracking-wider"
-            style={{
-              color: 'var(--lote-accent-halo)',
-              borderRight: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            A
-          </div>
-          <div
-            className="py-1.5 text-center text-[10px] font-bold font-mono tracking-wider"
-            style={{ color: 'var(--lote-accent-halo)' }}
-          >
-            B
-          </div>
+          {['A', 'B', 'C', 'D'].map((coluna) => (
+            <div
+              key={coluna}
+              className="border-r border-white/10 py-1.5 text-center text-[10px] font-bold font-mono tracking-wider last:border-r-0"
+              style={{ color: 'var(--lote-accent-halo)' }}
+            >
+              {coluna}
+            </div>
+          ))}
         </div>
 
-        {/* Header PLACA / CHASSI */}
+        {/* Cabeçalhos */}
         <div
-          className="grid grid-cols-2"
+          className="grid grid-cols-4"
           style={{
             backgroundColor: 'var(--lote-soft-bg)',
             borderBottom: '1px solid var(--lote-line)',
           }}
         >
-          <div
-            className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em]"
-            style={{
-              color: 'var(--lote-ink)',
-              borderRight: '1px solid var(--lote-line)',
-            }}
-          >
-            Placa
-          </div>
-          <div
-            className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em]"
-            style={{ color: 'var(--lote-ink)' }}
-          >
-            Chassi
-          </div>
+          {['Placa', 'Chassi', 'Modelo', 'Contrato'].map((cabecalho) => (
+            <div
+              key={cabecalho}
+              className="border-r border-[color:var(--lote-line)] px-2 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-[color:var(--lote-ink)] last:border-r-0"
+            >
+              {cabecalho}
+            </div>
+          ))}
         </div>
 
         {/* Dados */}
-        {EXEMPLO.map(([placa, chassi], i) => (
+        {EXEMPLO.map(([placa, chassi, modelo, contrato], i) => (
           <div
             key={placa}
             className={cn(
-              'grid grid-cols-2',
+              'grid grid-cols-4',
               i < EXEMPLO.length - 1 &&
                 'border-b border-slate-100 dark:border-petrol-800 transition-colors'
             )}
           >
-            <div
-              className="px-3 py-1.5 text-[11px] font-mono text-slate-700 dark:text-petrol-200/80 transition-colors"
-              style={{ borderRight: '1px solid var(--lote-line-soft)' }}
-            >
-              {placa}
-            </div>
-            <div className="px-3 py-1.5 text-[11px] font-mono text-slate-700 dark:text-petrol-200/80 transition-colors">
-              {chassi}
-            </div>
+            {[placa, chassi, modelo, contrato].map((valor, indice) => (
+              <div
+                key={`${placa}-${indice}`}
+                className="truncate border-r border-[color:var(--lote-line-soft)] px-2 py-1.5 text-[10px] font-mono text-slate-700 last:border-r-0 dark:text-petrol-200/80"
+              >
+                {valor}
+              </div>
+            ))}
           </div>
         ))}
+        </div>
       </div>
 
       {/* Regra de importação */}
@@ -208,8 +203,12 @@ function EstruturaPlanilha() {
         </span>
         <span>→ Chassi</span>
         <span className="text-slate-300 dark:text-petrol-700 transition-colors">·</span>
+        <span><strong>C</strong> → Modelo</span>
+        <span className="text-slate-300 dark:text-petrol-700 transition-colors">·</span>
+        <span><strong>D</strong> → Contrato</span>
+        <span className="text-slate-300 dark:text-petrol-700 transition-colors">·</span>
         <span className="text-slate-400 dark:text-petrol-300/40 transition-colors">
-          demais colunas ignoradas
+          modelo e contrato opcionais; demais colunas ignoradas
         </span>
       </div>
     </div>
@@ -228,6 +227,7 @@ export function LoteUploadModal({
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [arrastando, setArrastando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [modoBusca, setModoBusca] = useState<'NORMAL' | 'RAPIDO'>('NORMAL')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -235,6 +235,7 @@ export function LoteUploadModal({
       setArquivo(null)
       setArrastando(false)
       setErro(null)
+      setModoBusca('NORMAL')
     }
   }, [open])
 
@@ -285,7 +286,7 @@ export function LoteUploadModal({
 
   const handleConfirmar = () => {
     if (!arquivo) return
-    onEnviar(arquivo)
+    onEnviar(arquivo, modoBusca)
     onClose()
   }
 
@@ -355,6 +356,72 @@ export function LoteUploadModal({
 
         {/* ═══ FORMATO ESPERADO ═══ */}
         <EstruturaPlanilha />
+
+        <section aria-labelledby="modo-busca-title">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span
+              className="w-1 h-3 rounded-sm"
+              style={{ backgroundColor: 'var(--lote-hero-bg)' }}
+              aria-hidden
+            />
+            <h4
+              id="modo-busca-title"
+              className="text-[10px] font-bold text-slate-500 dark:text-petrol-300/70 tracking-[0.16em] uppercase"
+            >
+              Velocidade da busca
+            </h4>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Velocidade da busca">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={modoBusca === 'NORMAL'}
+              disabled={disabled}
+              onClick={() => setModoBusca('NORMAL')}
+              className={`flex min-h-12 items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors disabled:opacity-60 ${
+                modoBusca === 'NORMAL'
+                  ? 'border-petrol-600 bg-petrol-50 text-petrol-900 dark:border-petrol-400 dark:bg-petrol-800 dark:text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-petrol-400 dark:border-petrol-700 dark:bg-petrol-950 dark:text-petrol-200'
+              }`}
+            >
+              <Gauge className="h-4 w-4 shrink-0" />
+              <span>
+                <strong className="block">Normal</strong>
+                <span className="text-[10px] opacity-75">Uma consulta por vez</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={modoBusca === 'RAPIDO'}
+              disabled={disabled}
+              onClick={() => setModoBusca('RAPIDO')}
+              className={`flex min-h-12 items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors disabled:opacity-60 ${
+                modoBusca === 'RAPIDO'
+                  ? 'border-amber-500 bg-amber-50 text-amber-950 dark:border-amber-400 dark:bg-amber-950/40 dark:text-amber-100'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-amber-400 dark:border-petrol-700 dark:bg-petrol-950 dark:text-petrol-200'
+              }`}
+            >
+              <Zap className="h-4 w-4 shrink-0" />
+              <span>
+                <strong className="block">Rápido</strong>
+                <span className="text-[10px] opacity-75">Duas em paralelo</span>
+              </span>
+            </button>
+          </div>
+
+          {modoBusca === 'RAPIDO' && (
+            <div className="mt-2.5 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                Usar o modo rápido mais de duas vezes sem intervalo pode causar
+                erros nas consultas. Recomendamos usar esse modo no máximo uma
+                vez a cada hora.
+              </p>
+            </div>
+          )}
+        </section>
 
         {/* ═══ ÁREA DE IMPORTAÇÃO ═══ */}
         <div>

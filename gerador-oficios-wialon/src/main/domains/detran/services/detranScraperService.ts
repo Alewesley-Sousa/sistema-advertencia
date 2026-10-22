@@ -14,6 +14,7 @@ import type {
   DadosConsultaDetran,
   ResultadoConsultaDetran,
   MultaDetran,
+  SituacaoDebitosVeiculo,
 } from '../types'
 
 import { chaveMulta } from '../utils'
@@ -702,6 +703,61 @@ async function detectarMultas(
     texto:
       resultado.texto,
   }
+}
+
+async function extrairSituacaoDebitos(
+  page: Page
+): Promise<SituacaoDebitosVeiculo> {
+  return page.evaluate(() => {
+    let painelSituacao: HTMLElement | null = null
+
+    for (const painel of document.querySelectorAll<HTMLElement>(
+      '.panel.panel-primary'
+    )) {
+      const titulo = painel
+        .querySelector('.panel-heading .panel-title')
+        ?.textContent?.trim()
+
+      if (titulo === 'Situação e Taxas/Multas do Veículo') {
+        painelSituacao = painel
+        break
+      }
+    }
+
+    const listaServicos = painelSituacao?.querySelector<HTMLElement>(
+      '.panel-body .list-group'
+    )
+    const ipvaElemento = listaServicos?.querySelector<HTMLElement>('.ipva')
+    const licenciamentoElemento =
+      listaServicos?.querySelector<HTMLElement>('.licenciamento')
+    let ipva: SituacaoDebitosVeiculo['ipva'] = 'DESCONHECIDO'
+    let licenciamento: SituacaoDebitosVeiculo['licenciamento'] = 'DESCONHECIDO'
+
+    if (ipvaElemento) {
+      if (ipvaElemento.classList.contains('alert-danger')) {
+        ipva = 'DEBITO'
+      } else if (ipvaElemento.classList.contains('alert-success')) {
+        ipva = 'SEM_DEBITO'
+      } else if (ipvaElemento.classList.contains('alert-info')) {
+        ipva = 'INFORMACAO'
+      }
+    }
+
+    if (licenciamentoElemento) {
+      if (licenciamentoElemento.classList.contains('alert-danger')) {
+        licenciamento = 'DEBITO'
+      } else if (licenciamentoElemento.classList.contains('alert-success')) {
+        licenciamento = 'SEM_DEBITO'
+      } else if (licenciamentoElemento.classList.contains('alert-info')) {
+        licenciamento = 'INFORMACAO'
+      }
+    }
+
+    return {
+      ipva,
+      licenciamento,
+    }
+  })
 }
 
 /* ============================================================================
@@ -2303,6 +2359,8 @@ export async function consultarVeiculoDetran(
         : 'sem multas'
     )
 
+      const debitos = await extrairSituacaoDebitos(page)
+
     if (
       !deteccao ||
       deteccao.qtd <= 0
@@ -2313,6 +2371,8 @@ export async function consultarVeiculoDetran(
         chassi,
         statusConsulta:
           'QUITADO',
+        confirmacaoLimpa: true,
+        debitos,
       }
     }
 
@@ -2358,6 +2418,7 @@ export async function consultarVeiculoDetran(
         chassi,
         statusConsulta:
           'QUITADO',
+        debitos,
       }
     }
 
@@ -2544,6 +2605,7 @@ export async function consultarVeiculoDetran(
       statusConsulta:
         'COM_DEBITO',
       tipoDebito,
+      debitos,
       multas,
       caminhoPdf:
         primeiroPdfOk,

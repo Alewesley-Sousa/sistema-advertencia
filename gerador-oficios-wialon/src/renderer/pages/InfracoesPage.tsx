@@ -36,7 +36,6 @@ interface InfracoesPageProps {
 
 export function InfracoesPage({
   abaAtiva,
-  // onAbaChange é recebido mas quem consome é o Header (via App)
   onAbaChange: _onAbaChange,
   refreshKey = 0,
   gerandoPdfId: gerandoPdfIdProp,
@@ -56,7 +55,6 @@ export function InfracoesPage({
     meta: metaOperacional,
     carregando: carregandoOperacional,
     recarregar: recarregarOperacional,
-    // ─── NOVO: paginação vem do hook ─────────────────────────────
     pagina: paginaOperacional,
     setPagina: setPaginaOperacional,
   } = useInfracoesOperacionais({
@@ -66,14 +64,10 @@ export function InfracoesPage({
 
   const selecionada = operacionais.find((i) => i.id === selecionadaId) ?? null
 
-  // Recarrega quando o App sinaliza (sincronização, gerar PDF, etc)
   useEffect(() => {
     recarregarOperacional()
   }, [refreshKey, recarregarOperacional])
 
-  // ─── NOVO: limpa a seleção ao trocar de página ────────────────
-  // Se a infração selecionada não estiver na nova página, o drawer
-  // ficaria órfão. Limpar explicitamente mantém o estado coerente.
   useEffect(() => {
     setSelecionadaId(null)
   }, [paginaOperacional])
@@ -134,13 +128,19 @@ export function InfracoesPage({
   }
 
   return (
-    <div className="min-h-full flex flex-col bg-slate-100 dark:bg-petrol-950 transition-colors">
+    <div className="
+      min-h-full flex flex-col
+      bg-slate-100 dark:bg-petrol-950
+      text-slate-900 dark:text-slate-100
+      transition-colors
+    ">
 
       {/* ══════════ BARRA DE MÉTRICAS ══════════ */}
       <div className="
         flex items-center px-5 h-9 text-[11px]
-        bg-white/60 dark:bg-petrol-900/60
-        border-b border-slate-200/80 dark:border-petrol-800
+        bg-white/85 dark:bg-petrol-900/85
+        backdrop-blur-sm
+        border-b border-slate-200 dark:border-petrol-800
         transition-colors
       ">
         <InfracoesMetricas
@@ -156,7 +156,12 @@ export function InfracoesPage({
 
         {/* ───── ABA OPERACIONAL ───── */}
         {abaAtiva === 'OPERACIONAL' && (
-          <div className="flex h-full" style={{ minHeight: 'calc(100vh - 140px)' }}>
+          <div
+            className="flex h-full"
+            /* Altura mínima da área operacional (mapa + fila).
+               Revise esse 140px se mudar a altura do header/métrica. */
+            style={{ minHeight: 'calc(100vh - 140px)' }}
+          >
             <InfracaoFila
               infracoes={operacionais}
               carregando={carregandoOperacional}
@@ -164,7 +169,6 @@ export function InfracoesPage({
               onSelecionar={(item) => setSelecionadaId(item.id)}
               busca={buscaOperacional}
               onBuscaChange={setBuscaOperacional}
-              // ─── NOVO: paginação ────────────────────────────────
               pagina={paginaOperacional}
               totalPages={metaOperacional?.totalPages ?? 1}
               total={metaOperacional?.totalItems ?? 0}
@@ -189,7 +193,16 @@ export function InfracoesPage({
         {/* ───── ABA HISTÓRICO ───── */}
         {abaAtiva === 'HISTORICO' && (
           <div className="p-6">
-            <Card padding="none" className="overflow-hidden">
+            <Card
+              padding="none"
+              className="
+                overflow-hidden
+                bg-white dark:bg-petrol-900
+                border border-slate-200 dark:border-petrol-800
+                shadow-sm dark:shadow-black/30
+                transition-colors
+              "
+            >
               <InfracaoHistoricoFilters
                 busca={buscaHistorico}
                 onBuscaChange={handleBuscaHistoricoChange}
