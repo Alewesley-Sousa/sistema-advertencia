@@ -574,22 +574,25 @@ function GraficoBarrasContratos({
                             interval={0}
                             angle={-32}
                             textAnchor="end"
-                            height={76}
-                            tick={{ fontSize: 10 }}
+                            height={46}
+                            tick={{ fontSize: 10, className: 'fill-slate-800 dark:fill-petrol-200' }}
+                            axisLine={{ className: 'stroke-slate-500 dark:stroke-petrol-600' }}
+                            tickLine={{ className: 'stroke-slate-500 dark:stroke-petrol-600' }}
                             tickFormatter={(nome: string) => nome.length > 18 ? `${nome.slice(0, 17)}…` : nome}
-                            className="fill-slate-600 dark:fill-petrol-200"
                         />
                         <YAxis
                             width={68}
-                            tick={{ fontSize: 10 }}
+                            tick={{ fontSize: 10, className: 'fill-slate-700 dark:fill-petrol-300' }}
+                            axisLine={{ className: 'stroke-slate-500 dark:stroke-petrol-600' }}
+                            tickLine={{ className: 'stroke-slate-500 dark:stroke-petrol-600' }}
                             tickFormatter={(valor: number) => formatarEixo.format(valor)}
-                            className="fill-slate-500 dark:fill-petrol-300/70"
                             label={{
                                 value: 'Valor acumulado (R$)',
                                 angle: -90,
                                 position: 'insideLeft',
                                 offset: 8,
-                                style: { textAnchor: 'middle', fill: '#64748b', fontSize: 10 },
+                                className: 'fill-slate-700 dark:fill-petrol-300',
+                                style: { textAnchor: 'middle', fontSize: 10 },
                             }}
                         />
                         <Tooltip
@@ -619,7 +622,7 @@ function GraficoBarrasContratos({
                                 return (
                                     <Cell
                                         key={item.id}
-                                        fill={selecionado ? '#047857' : '#059669'}
+                                        fill={selecionado ? '#0db485' : '#089165'}
                                         fillOpacity={atenuado ? 0.35 : 1}
                                     />
                                 )
@@ -628,7 +631,8 @@ function GraficoBarrasContratos({
                                 dataKey="valorMultasAtivas"
                                 position="top"
                                 formatter={(valor) => formatarMoeda(Number(valor))}
-                                style={{ fill: '#475569', fontSize: 10, fontWeight: 600 }}
+                                className="fill-slate-600 dark:fill-white"
+                                style={{ fontSize: 10, fontWeight: 600 }}
                             />
                         </Bar>
                     </BarChart>
@@ -638,19 +642,21 @@ function GraficoBarrasContratos({
     )
 }
 
-const CORES_SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948']
+const CORES_SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4']
 const COR_DEMAIS = '#94a3b8'
-const ID_DEMAIS = '__DEMAIS__'
-const MAX_LINHAS = CORES_SERIES.length
+// 5 contratos + "Demais": acima disso as linhas viram um emaranhado ilegível.
+const MAX_LINHAS = CORES_SERIES.length + 1
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 const rotuloMesCurto = (mes: string) => {
     const [ano, numero] = mes.split('-')
     return `${MESES_CURTOS[Number(numero) - 1]}/${ano.slice(2)}`
 }
 const rotuloMesLongo = (mes: string) => {
-    const [ano, numero] = mes.split('-').map(Number)
-    return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(ano, numero - 1, 1))
+    const [ano, numero] = mes.split('-')
+    const nome = MESES_LONGOS[Number(numero) - 1] ?? mes
+    return `${nome.charAt(0).toUpperCase()}${nome.slice(1)} de ${ano}`
 }
 
 function GraficoEvolucaoMensal({
@@ -662,43 +668,48 @@ function GraficoEvolucaoMensal({
     contratos: RelatoriosDetranData['valoresPorContrato']
     selecionados: string[]
 }) {
+    const [destaque, setDestaque] = useState<string | null>(null)
+
     const visiveis = contratos
         .filter((item) => item.valorMultasAtivas > 0)
         .filter((item) => selecionados.length === 0 || selecionados.includes(item.id))
         .sort((primeiro, segundo) => segundo.valorMultasAtivas - primeiro.valorMultasAtivas)
 
-    // Acima de 8 contratos, os menores são somados em "Demais contratos".
+    // Acima do limite, os menores contratos são somados em "Demais contratos".
     const agrupar = visiveis.length > MAX_LINHAS
     const principais = agrupar ? visiveis.slice(0, MAX_LINHAS - 1) : visiveis
-    const idsDemais = agrupar ? visiveis.slice(MAX_LINHAS - 1).map((item) => item.id) : []
+    const demais = agrupar ? visiveis.slice(MAX_LINHAS - 1) : []
 
+    // Cada série recebe uma chave "s0", "s1"... — estável entre renders e sem o
+    // problema de nomes de contrato com "." no dataKey do recharts.
     const series = [
         ...principais.map((item, indice) => ({
-            id: item.id,
+            chave: `s${indice}`,
+            ids: [item.id],
             nome: item.contrato,
-            cor: CORES_SERIES[indice],
+            cor: CORES_SERIES[indice] ?? COR_DEMAIS,
             total: item.valorMultasAtivas,
         })),
         ...(agrupar
             ? [{
-                id: ID_DEMAIS,
-                nome: `Demais contratos (${idsDemais.length})`,
+                chave: 'demais',
+                ids: demais.map((item) => item.id),
+                nome: `Demais contratos (${demais.length})`,
                 cor: COR_DEMAIS,
-                total: visiveis.slice(MAX_LINHAS - 1).reduce((soma, item) => soma + item.valorMultasAtivas, 0),
+                total: demais.reduce((soma, item) => soma + item.valorMultasAtivas, 0),
             }]
             : []),
     ]
 
     const linhas = evolucao.meses.map(({ mes, valores }) => ({
         mes,
-        valores: {
-            ...Object.fromEntries(principais.map((item) => [item.id, valores[item.id] ?? 0])),
-            ...(agrupar ? { [ID_DEMAIS]: idsDemais.reduce((soma, id) => soma + (valores[id] ?? 0), 0) } : {}),
-        } as Record<string, number>,
+        ...Object.fromEntries(
+            series.map((serie) => [serie.chave, serie.ids.reduce((soma, id) => soma + (valores[id] ?? 0), 0)])
+        ),
     }))
 
     const formatarEixo = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
-    const larguraGrafico = Math.max(760, linhas.length * 64)
+    const larguraMinima = Math.max(640, linhas.length * 64)
     const mostrarPontos = linhas.length <= 18
 
     if (series.length === 0) {
@@ -711,17 +722,29 @@ function GraficoEvolucaoMensal({
 
     return (
         <div className="border-y border-slate-200 py-3 dark:border-petrol-800">
-            <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-2 px-1" aria-label="Legenda">
-                {series.map((serie) => (
-                    <li key={serie.id} className="inline-flex items-center gap-2 text-[11px] text-slate-600 dark:text-petrol-200">
-                        <span className="h-0.5 w-4 shrink-0 rounded-full" style={{ backgroundColor: serie.cor }} />
-                        <span title={serie.nome}>{serie.nome.length > 24 ? `${serie.nome.slice(0, 23)}…` : serie.nome}</span>
-                        <span className="font-mono font-semibold text-slate-800 dark:text-white">{formatarMoeda(serie.total)}</span>
-                    </li>
-                ))}
+            <ul className="mb-3 flex flex-wrap gap-x-1 gap-y-1" aria-label="Legenda — passe o mouse para destacar um contrato">
+                {series.map((serie) => {
+                    const atenuado = destaque !== null && destaque !== serie.chave
+                    return (
+                        <li key={serie.chave}>
+                            <button
+                                type="button"
+                                onMouseEnter={() => setDestaque(serie.chave)}
+                                onMouseLeave={() => setDestaque(null)}
+                                onFocus={() => setDestaque(serie.chave)}
+                                onBlur={() => setDestaque(null)}
+                                className={`inline-flex items-center gap-2 rounded-md px-2 py-1 text-[11px] text-slate-600 transition-opacity hover:bg-slate-100 dark:text-petrol-200 dark:hover:bg-petrol-800/60 ${atenuado ? 'opacity-40' : ''}`}
+                            >
+                                <span className="h-0.5 w-4 shrink-0 rounded-full" style={{ backgroundColor: serie.cor }} />
+                                <span title={serie.nome}>{serie.nome.length > 24 ? `${serie.nome.slice(0, 23)}…` : serie.nome}</span>
+                                <span className="font-mono font-semibold text-slate-800 dark:text-white">{formatarMoeda(serie.total)}</span>
+                            </button>
+                        </li>
+                    )
+                })}
             </ul>
             <div className="overflow-x-auto">
-                <div style={{ width: larguraGrafico, height: 340 }}>
+                <div style={{ minWidth: larguraMinima, height: 340 }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={linhas} margin={{ top: 12, right: 24, bottom: 8, left: 12 }}>
                             <CartesianGrid
@@ -732,6 +755,7 @@ function GraficoEvolucaoMensal({
                             <XAxis
                                 dataKey="mes"
                                 interval="preserveStartEnd"
+                                padding={{ left: 12, right: 12 }}
                                 tick={{ fontSize: 10 }}
                                 tickFormatter={rotuloMesCurto}
                                 className="fill-slate-600 dark:fill-petrol-200"
@@ -761,7 +785,7 @@ function GraficoEvolucaoMensal({
 
                                     return (
                                         <div className="min-w-52 rounded-md border border-slate-300 bg-white px-3 py-2 text-[11px] shadow-lg dark:border-petrol-700 dark:bg-petrol-900">
-                                            <p className="mb-1.5 font-semibold capitalize text-slate-800 dark:text-white">
+                                            <p className="mb-1.5 font-semibold text-slate-800 dark:text-white">
                                                 {rotuloMesLongo(String(label))}
                                             </p>
                                             {itens.length === 0 ? (
@@ -769,7 +793,10 @@ function GraficoEvolucaoMensal({
                                             ) : (
                                                 <>
                                                     {itens.map((item) => (
-                                                        <p key={String(item.name)} className="flex items-center justify-between gap-4 py-0.5">
+                                                        <p
+                                                            key={String(item.dataKey)}
+                                                            className={`flex items-center justify-between gap-4 py-0.5 ${destaque !== null && destaque !== item.dataKey ? 'opacity-40' : ''}`}
+                                                        >
                                                             <span className="inline-flex items-center gap-2 text-slate-600 dark:text-petrol-200">
                                                                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
                                                                 {item.name}
@@ -781,7 +808,7 @@ function GraficoEvolucaoMensal({
                                                     ))}
                                                     {itens.length > 1 && (
                                                         <p className="mt-1 flex justify-between gap-4 border-t border-slate-200 pt-1 font-semibold text-slate-800 dark:border-petrol-700 dark:text-white">
-                                                            <span>Total</span>
+                                                            <span>Total do mês</span>
                                                             <span className="font-mono">{formatarMoeda(total)}</span>
                                                         </p>
                                                     )}
@@ -791,19 +818,24 @@ function GraficoEvolucaoMensal({
                                     )
                                 }}
                             />
-                            {series.map((serie) => (
-                                <Line
-                                    key={serie.id}
-                                    type="linear"
-                                    name={serie.nome}
-                                    // Função em vez de string: nomes de contrato com "." quebrariam o dataKey do recharts.
-                                    dataKey={(linha: (typeof linhas)[number]) => linha.valores[serie.id] ?? 0}
-                                    stroke={serie.cor}
-                                    strokeWidth={2}
-                                    dot={mostrarPontos ? { r: 3, strokeWidth: 0, fill: serie.cor } : false}
-                                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
-                                />
-                            ))}
+                            {series.map((serie) => {
+                                const emDestaque = destaque === serie.chave
+                                const atenuado = destaque !== null && !emDestaque
+                                return (
+                                    <Line
+                                        key={serie.chave}
+                                        type="linear"
+                                        name={serie.nome}
+                                        dataKey={serie.chave}
+                                        stroke={serie.cor}
+                                        strokeWidth={emDestaque ? 3 : 2}
+                                        strokeOpacity={atenuado ? 0.15 : 1}
+                                        dot={mostrarPontos && !atenuado ? { r: 3, strokeWidth: 0, fill: serie.cor } : false}
+                                        activeDot={atenuado ? false : { r: 5, strokeWidth: 2, stroke: '#fff' }}
+                                        isAnimationActive={false}
+                                    />
+                                )
+                            })}
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
