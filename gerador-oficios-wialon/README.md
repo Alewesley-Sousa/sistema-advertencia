@@ -34,7 +34,7 @@ See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rule
 ## Configuração e scripts
 
 - Copie `.env.example` para `.env` e preencha os valores. **Nunca** commite o `.env`.
-- `CORS_ORIGIN`: origens permitidas na API (padrão `http://localhost:5173`).
+- `CORS_ORIGIN`: origens permitidas na API (padrão: `localhost`/`127.0.0.1` nas portas 3000 e 5173).
 - `npm test`: testes das regras puras e do helper de DOM (precisa de Chrome; use `PUPPETEER_EXECUTABLE_PATH` se necessário).
 - `npm run typecheck:server`: checagem de tipos do backend (`src/main`).
 - A pasta `storage/` (banco SQLite, PDFs, debug) é gerada localmente e não é versionada.

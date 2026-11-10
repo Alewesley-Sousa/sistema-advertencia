@@ -19,8 +19,11 @@ const IS_PROD = process.env.NODE_ENV === 'production'
    Middlewares globais
    ═══════════════════════════════════════════════════════════════ */
 // CORS_ORIGIN aceita uma lista separada por vírgulas. Sem valor, libera apenas
-// o front local (Vite) em vez de qualquer origem.
-const origensPermitidas = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+// o front local (Vite, porta 3000 definida no vite.config.ts) em vez de qualquer origem.
+const ORIGENS_PADRAO =
+  'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173'
+
+const origensPermitidas = (process.env.CORS_ORIGIN || ORIGENS_PADRAO)
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean)
