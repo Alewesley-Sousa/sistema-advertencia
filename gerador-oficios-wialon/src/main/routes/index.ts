@@ -12,4 +12,7 @@ routes.use('/infracoes', infracaoRoutes)
 routes.use('/configuracoes', configuracoesRoutes)
 routes.use('/sincronizar', syncRoutes)
 routes.use('/detran', detranRoutes)
-routes.use('/dev', devRoutes)
+// Rotas de mock/preview existem apenas fora de produção
+if (process.env.NODE_ENV !== 'production') {
+  routes.use('/dev', devRoutes)
+}

@@ -7,7 +7,7 @@
  */
 
 import cron from 'node-cron'
-import { consolidarInfracoesPendentes } from '../domains/infracoes/services/consolidaçãoService'
+import { consolidarInfracoesPendentes } from '../domains/infracoes/services/consolidacaoService'
 import { sincronizarInfracoesWialon } from '../domains/wialon/services/wialonSyncService'
 
 export function iniciarCronJobs(): void {

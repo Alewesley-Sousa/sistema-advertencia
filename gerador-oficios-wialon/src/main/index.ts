@@ -4,7 +4,7 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import { initDatabase } from './database/init'
-import { consolidarInfracoesPendentes } from './domains/infracoes/services/consolidaçãoService'
+import { consolidarInfracoesPendentes } from './domains/infracoes/services/consolidacaoService'
 import { routes } from './routes'
 import { iniciarCronJobs } from './jobs/infracoesCron'
 import { errorHandler } from './shared/errors/errorHandler'
@@ -12,19 +12,29 @@ import { AppError } from './shared/errors/AppError'
 import { seedInfracoesDev } from './domains/infracoes/services/wialonMockService'
 
 const app = express()
-const PORT = 3333
+const PORT = Number(process.env.PORT) || 3333
+const IS_PROD = process.env.NODE_ENV === 'production'
 
 /* ═══════════════════════════════════════════════════════════════
    Middlewares globais
    ═══════════════════════════════════════════════════════════════ */
-app.use(cors())
+// CORS_ORIGIN aceita uma lista separada por vírgulas. Sem valor, libera apenas
+// o front local (Vite) em vez de qualquer origem.
+const origensPermitidas = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
+app.use(cors({ origin: origensPermitidas }))
 app.use(express.json())
 
 /* ═══════════════════════════════════════════════════════════════
    Banco de dados
    ═══════════════════════════════════════════════════════════════ */
 initDatabase()
-seedInfracoesDev()
+if (!IS_PROD) {
+  seedInfracoesDev()
+}
 /* ═══════════════════════════════════════════════════════════════
    Healthcheck
    ═══════════════════════════════════════════════════════════════ */
@@ -41,7 +51,7 @@ app.use('/api', routes)
 /* ═══════════════════════════════════════════════════════════════
    Rota de teste de erro — só em dev
    ═══════════════════════════════════════════════════════════════ */
-if (process.env.NODE_ENV !== 'production') {
+if (!IS_PROD) {
   app.get('/api/test-error', (_req, _res) => {
     throw new AppError(
       'Erro de teste.',
