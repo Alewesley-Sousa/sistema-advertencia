@@ -11,14 +11,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 
-import { db } from '../../../database/db'
-import { runWithConcurrency } from '../../../shared/concurrency/runWithConcurrency'
 import { AppError } from '../../../shared/errors/AppError'
 import { sendResponse } from '../../../utils/response'
 import { parseParamId, parsePaginationParams } from '../../../utils/requestHelpers'
 
 import { detranRepository } from '../repositories/detranRepository'
-import { consultarVeiculoDetran as executarScraper } from '../services/detranScraperService'
+import { consultarEPersistir, processarFilaLote } from '../services/detranService'
+import { normalizarIdentificador, sanitizarNome } from '../utils'
 
 /* ============================================================================
  * SETUP
@@ -42,78 +41,6 @@ if (typeof archiver !== 'function') {
 /* ============================================================================
  * HELPERS INTERNOS
  * ==========================================================================*/
-
-function sanitizarNome(s: string): string {
-  return String(s)
-    .replace(/[^A-Za-z0-9._-]/g, '_')
-    .slice(0, 100)
-}
-
-/**
- * Normaliza placa/chassi para o formato usado no banco (A-Z e 0-9).
- */
-function normalizarIdentificador(v: unknown): string {
-  return String(v ?? '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '')
-    .trim()
-}
-
-/**
- * Consulta um veículo no DETRAN e persiste o resultado.
- *
- * Ponto único de entrada para "consultar 1 veículo" — usado tanto pela
- * consulta avulsa quanto pelo worker do lote, que fazem exatamente a
- * mesma sequência de operações.
- */
-async function consultarEPersistir(params: {
-  placa: string
-  chassi: string
-  modelo?: string
-  contrato?: string
-  forcarRedownload?: boolean
-}) {
-  const { placa, chassi, modelo, contrato, forcarRedownload = false } = params
-
-  const consultaId = detranRepository.obterOuCriarConsulta(placa, chassi, {
-    modelo,
-    contrato,
-  })
-
-  const aitJaBaixados = forcarRedownload
-    ? new Set<string>()
-    : detranRepository.buscarChavesJaBaixadas(placa)
-
-  const resultado = await executarScraper({
-    placa,
-    chassi,
-    aitJaBaixados,
-  })
-
-  detranRepository.atualizarResultadoConsulta(consultaId, resultado)
-
-  let salvas = { inseridas: 0, atualizadas: 0 }
-  if (resultado.multas?.length) {
-    salvas = detranRepository.salvarMultas(consultaId, placa, resultado.multas)
-  }
-
-  const consultaCompletaComMultas =
-    resultado.sucesso &&
-    resultado.statusConsulta === 'COM_DEBITO' &&
-    Array.isArray(resultado.multas)
-  const consultaCompletaSemMultas =
-    resultado.sucesso && resultado.confirmacaoLimpa === true
-
-  if (consultaCompletaComMultas || consultaCompletaSemMultas) {
-    detranRepository.sincronizarMultasAtivas(
-      consultaId,
-      placa,
-      resultado.multas ?? []
-    )
-  }
-
-  return { consultaId, resultado, salvas, aitJaBaixados }
-}
 
 /* ============================================================================
  * 1. CONSULTAR VEÍCULO AVULSO (DETRAN-CE)
@@ -321,108 +248,6 @@ export async function processarLoteDetran(
   } catch (error) {
     console.error('[DETRAN] Erro ao criar lote:', error)
     return next(error)
-  }
-}
-
-async function processarFilaLote(
-  loteId: number,
-  veiculos: Array<{
-    placa: string
-    chassi: string
-    modelo?: string
-    contrato?: string
-  }>,
-  concorrencia: number
-): Promise<void> {
-  console.log(
-    `[DETRAN] Lote ${loteId} iniciado — ` +
-      `${veiculos.length} veículo(s) — concorrência: ${concorrencia}`
-  )
-
-  try {
-    await runWithConcurrency(veiculos, concorrencia, async (veiculo) => {
-      await processarVeiculoLote(loteId, veiculo)
-    })
-
-    detranRepository.finalizarLote(loteId)
-
-    console.log(
-      `[DETRAN] Lote ${loteId} concluído — ${veiculos.length} veículo(s)`
-    )
-  } catch (err: any) {
-    console.error(
-      `[DETRAN] Lote ${loteId} falhou de forma inesperada:`,
-      err?.message
-    )
-
-    try {
-      db.prepare(`
-        UPDATE lotes_consultas
-        SET status = 'ERRO',
-            item_atual = NULL,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(loteId)
-    } catch (dbErr: any) {
-      console.error(
-        `[DETRAN] Falha ao marcar lote ${loteId} como ERRO:`,
-        dbErr?.message
-      )
-    }
-  }
-}
-
-async function processarVeiculoLote(
-  loteId: number,
-  veiculo: {
-    placa: string
-    chassi: string
-    modelo?: string
-    contrato?: string
-  }
-): Promise<void> {
-  const { placa, chassi, modelo, contrato } = veiculo
-
-  try {
-    detranRepository.atualizarItemAtualLote(loteId, placa)
-
-    const { aitJaBaixados, salvas } = await consultarEPersistir({
-      placa,
-      chassi,
-      modelo,
-      contrato,
-    })
-
-    console.log(
-      `[DETRAN] Lote ${loteId} — ${placa}: ` +
-        `${aitJaBaixados.size} já baixada(s), ` +
-        `${salvas.inseridas} nova(s), ${salvas.atualizadas} atualizada(s)`
-    )
-  } catch (err: any) {
-    const mensagem = err?.message || 'Erro ao processar veículo.'
-
-    console.error(
-      `[DETRAN] Erro no item ${placa} do lote ${loteId}:`,
-      mensagem
-    )
-
-    try {
-      const consultaId = detranRepository.obterOuCriarConsulta(placa, chassi, {
-        modelo,
-        contrato,
-      })
-      detranRepository.atualizarResultadoConsulta(consultaId, {
-        statusConsulta: 'ERRO',
-        mensagemErro: mensagem,
-      })
-    } catch (erroBanco: any) {
-      console.error(
-        `[DETRAN] Falha ao registrar erro de ${placa}:`,
-        erroBanco?.message
-      )
-    }
-  } finally {
-    detranRepository.incrementarProgressoLote(loteId)
   }
 }
 

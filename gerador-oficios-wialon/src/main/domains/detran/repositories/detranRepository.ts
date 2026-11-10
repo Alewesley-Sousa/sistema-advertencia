@@ -614,6 +614,16 @@ export const detranRepository = {
     WHERE id = ?
   `).run(loteId)
   },
+  marcarLoteComoErro(loteId: number) {
+    return db.prepare(`
+      UPDATE lotes_consultas
+      SET status = 'ERRO',
+          item_atual = NULL,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(loteId)
+  },
+
   /* ========================================================================
    * MULTAS INDIVIDUAIS
    * ======================================================================*/
