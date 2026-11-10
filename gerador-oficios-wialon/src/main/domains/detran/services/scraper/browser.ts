@@ -3,6 +3,7 @@ import type { Browser, Page } from 'puppeteer'
 import path from 'node:path'
 import fs from 'node:fs'
 import { CONFIG, log, logErr } from './config'
+import { instalarHelpersDom } from './dom'
 
 /* ============================================================================
  * BROWSER COMPARTILHADO
@@ -153,6 +154,9 @@ export async function fecharBrowserDetran(): Promise<void> {
 export async function configurarPagina(
   page: Page
 ): Promise<void> {
+  // Precisa rodar ANTES da primeira navegação (page.goto).
+  await instalarHelpersDom(page)
+
   page.setDefaultNavigationTimeout(
     CONFIG.timeouts.navegacao
   )

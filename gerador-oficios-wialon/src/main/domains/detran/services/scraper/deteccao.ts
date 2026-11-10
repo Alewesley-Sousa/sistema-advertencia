@@ -20,18 +20,8 @@ export async function detectarMultas(
         ) as HTMLElement | null
 
       if (alerta) {
-        const style =
-          window.getComputedStyle(alerta)
-
-        const rect =
-          alerta.getBoundingClientRect()
-
         if (
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(alerta)
         ) {
           const texto =
             (

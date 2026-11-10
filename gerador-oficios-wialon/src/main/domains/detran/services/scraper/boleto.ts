@@ -45,20 +45,8 @@ export async function esperarEstadoPagamento(
           ) as HTMLElement | null
 
         if (btnBaixar) {
-          const style =
-            window.getComputedStyle(
-              btnBaixar
-            )
-
-          const rect =
-            btnBaixar.getBoundingClientRect()
-
           if (
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            style.opacity !== '0' &&
-            rect.width > 0 &&
-            rect.height > 0
+            window.__visivel(btnBaixar)
           ) {
             return {
               status: 'baixar',
@@ -72,20 +60,8 @@ export async function esperarEstadoPagamento(
           ) as HTMLElement | null
 
         if (btnVerOpcoes) {
-          const style =
-            window.getComputedStyle(
-              btnVerOpcoes
-            )
-
-          const rect =
-            btnVerOpcoes.getBoundingClientRect()
-
           if (
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            style.opacity !== '0' &&
-            rect.width > 0 &&
-            rect.height > 0
+            window.__visivel(btnVerOpcoes)
           ) {
             return {
               status: 'ver-opcoes',
@@ -144,20 +120,8 @@ export async function esperarBoletoOuAlerta(
           ) as HTMLElement | null
 
         if (alerta) {
-          const style =
-            window.getComputedStyle(
-              alerta
-            )
-
-          const rect =
-            alerta.getBoundingClientRect()
-
           if (
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            style.opacity !== '0' &&
-            rect.width > 0 &&
-            rect.height > 0
+            window.__visivel(alerta)
           ) {
             const mensagem =
               (
@@ -185,20 +149,8 @@ export async function esperarBoletoOuAlerta(
           ) as HTMLElement | null
 
         if (btnBaixar) {
-          const style =
-            window.getComputedStyle(
-              btnBaixar
-            )
-
-          const rect =
-            btnBaixar.getBoundingClientRect()
-
           if (
-            style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            style.opacity !== '0' &&
-            rect.width > 0 &&
-            rect.height > 0
+            window.__visivel(btnBaixar)
           ) {
             return {
               status: 'baixar',

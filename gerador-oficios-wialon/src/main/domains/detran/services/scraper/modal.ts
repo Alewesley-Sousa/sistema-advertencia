@@ -72,80 +72,32 @@ export async function obterEstadoModal(
         false
 
       if (modal) {
-        const style =
-          window.getComputedStyle(
-            modal
-          )
-
-        const rect =
-          modal.getBoundingClientRect()
-
         modalVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(modal)
       }
 
       let btnVerOpcoesVisivel =
         false
 
       if (btnVerOpcoes) {
-        const style =
-          window.getComputedStyle(
-            btnVerOpcoes
-          )
-
-        const rect =
-          btnVerOpcoes.getBoundingClientRect()
-
         btnVerOpcoesVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(btnVerOpcoes)
       }
 
       let btnBaixarBoletoVisivel =
         false
 
       if (btnBaixar) {
-        const style =
-          window.getComputedStyle(
-            btnBaixar
-          )
-
-        const rect =
-          btnBaixar.getBoundingClientRect()
-
         btnBaixarBoletoVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(btnBaixar)
       }
 
       let btnVoltarVisivel =
         false
 
       if (btnVoltar) {
-        const style =
-          window.getComputedStyle(
-            btnVoltar
-          )
-
-        const rect =
-          btnVoltar.getBoundingClientRect()
-
         btnVoltarVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(btnVoltar)
       }
 
       let alertaVisivel =
@@ -154,20 +106,8 @@ export async function obterEstadoModal(
       let alertaTexto = ''
 
       if (alerta) {
-        const style =
-          window.getComputedStyle(
-            alerta
-          )
-
-        const rect =
-          alerta.getBoundingClientRect()
-
         alertaVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(alerta)
 
         alertaTexto =
           (
@@ -187,20 +127,8 @@ export async function obterEstadoModal(
       for (
         const checkbox of checkboxes
       ) {
-        const style =
-          window.getComputedStyle(
-            checkbox
-          )
-
-        const rect =
-          checkbox.getBoundingClientRect()
-
         if (
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(checkbox)
         ) {
           checkboxVisivel = true
           break
@@ -258,20 +186,8 @@ export async function abrirModalMultas(
         return false
       }
 
-      const style =
-        window.getComputedStyle(
-          modal
-        )
-
-      const rect =
-        modal.getBoundingClientRect()
-
       const modalVisivel =
-        style.display !== 'none' &&
-        style.visibility !== 'hidden' &&
-        style.opacity !== '0' &&
-        rect.width > 0 &&
-        rect.height > 0
+        window.__visivel(modal)
 
       if (!modalVisivel) {
         return false
@@ -435,20 +351,8 @@ export async function voltarParaSelecaoMultas(
         return false
       }
 
-      const checkboxStyle =
-        window.getComputedStyle(
-          checkbox
-        )
-
-      const checkboxRect =
-        checkbox.getBoundingClientRect()
-
       const checkboxVisivel =
-        checkboxStyle.display !== 'none' &&
-        checkboxStyle.visibility !== 'hidden' &&
-        checkboxStyle.opacity !== '0' &&
-        checkboxRect.width > 0 &&
-        checkboxRect.height > 0
+        window.__visivel(checkbox)
 
       if (!checkboxVisivel) {
         return false
@@ -468,37 +372,13 @@ export async function voltarParaSelecaoMultas(
       let verOpcoesVisivel = false
 
       if (btnVoltar) {
-        const style =
-          window.getComputedStyle(
-            btnVoltar
-          )
-
-        const rect =
-          btnVoltar.getBoundingClientRect()
-
         voltarVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(btnVoltar)
       }
 
       if (btnVerOpcoes) {
-        const style =
-          window.getComputedStyle(
-            btnVerOpcoes
-          )
-
-        const rect =
-          btnVerOpcoes.getBoundingClientRect()
-
         verOpcoesVisivel =
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0' &&
-          rect.width > 0 &&
-          rect.height > 0
+          window.__visivel(btnVerOpcoes)
       }
 
       return (
