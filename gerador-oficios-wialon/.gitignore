@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de ambiente (nunca commitar segredos)
+.env
+.env.*
+!.env.example
+
+# Dados locais gerados pela aplicação
+storage/
+*.db
+*.db-journal

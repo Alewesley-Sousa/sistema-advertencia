@@ -4,6 +4,7 @@ Usa a API do Wialon via resource/get_driver_bindings.
 """
 
 import json
+import os
 import requests
 from datetime import datetime
 
@@ -11,7 +12,7 @@ from datetime import datetime
 # CONFIGURAÇÕES
 # ══════════════════════════════════════════════════════════════════
 WIALON_API_URL = "https://hst-api.wialon.com/wialon/ajax.html"
-WIALON_TOKEN = "00bdf89a68605be49fceaa8ed103fa415A364BF331FECA4EAD1BF07EE373F8534C6CED7E"
+WIALON_TOKEN = os.environ["WIALON_TOKEN"]  # defina no ambiente; nunca commitar
 RESOURCE_ID = 401168304  # FORCE SERVIÇOS
 
 PLACA = "SBU7G13"
