@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
-import { after, before, describe, it } from 'node:test'
-import puppeteer, { type Browser, type Page } from 'puppeteer'
+import { after, describe, it } from 'node:test'
+import puppeteer from 'puppeteer'
 
+import { getChromeExecutablePath } from './browser'
 import { instalarHelpersDom } from './dom'
 
 /**
@@ -17,30 +18,37 @@ const HTML = `
 <div id="zero" style="width:0;height:0"></div>
 <div style="display:none"><button id="filho">x</button></div>`
 
-describe('window.__visivel', () => {
-  let browser: Browser
-  let page: Page
+// Usa o Chrome instalado (mesma busca do scraper) ou o do Puppeteer. Se nenhum
+// existir, os testes são pulados em vez de falhar.
+const browser = await puppeteer
+  .launch({
+    headless: true,
+    executablePath: getChromeExecutablePath(),
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  })
+  .catch(() => null)
 
-  before(async () => {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+const page = browser ? await browser.newPage() : null
+
+if (page) {
+  await instalarHelpersDom(page)
+  await page!.goto('data:text/html;charset=utf-8,' + encodeURIComponent(HTML))
+}
+
+describe(
+  'window.__visivel',
+  { skip: page ? false : 'Chrome não encontrado (instale o Chrome ou defina PUPPETEER_EXECUTABLE_PATH)' },
+  () => {
+    after(async () => {
+      await browser?.close()
     })
-    page = await browser.newPage()
-    await instalarHelpersDom(page)
-    await page.goto('data:text/html;charset=utf-8,' + encodeURIComponent(HTML))
-  })
-
-  after(async () => {
-    await browser?.close()
-  })
 
   it('true para elemento visível', async () => {
-    assert.equal(await page.evaluate(() => window.__visivel(document.getElementById('ok'))), true)
+    assert.equal(await page!.evaluate(() => window.__visivel(document.getElementById('ok'))), true)
   })
 
   it('false para display/visibility/opacity/tamanho zero/pai oculto', async () => {
-    const r = await page.evaluate(() => [
+    const r = await page!.evaluate(() => [
       window.__visivel(document.getElementById('display')),
       window.__visivel(document.getElementById('visibility')),
       window.__visivel(document.getElementById('opacity')),
@@ -51,15 +59,16 @@ describe('window.__visivel', () => {
   })
 
   it('false para elemento inexistente', async () => {
-    assert.equal(await page.evaluate(() => window.__visivel(null)), false)
+    assert.equal(await page!.evaluate(() => window.__visivel(null)), false)
   })
 
   it('funciona em waitForFunction', async () => {
-    await page.waitForFunction(() => window.__visivel(document.getElementById('ok')), { timeout: 2000 })
+    await page!.waitForFunction(() => window.__visivel(document.getElementById('ok')), { timeout: 2000 })
   })
 
   it('continua disponível depois de navegar', async () => {
-    await page.goto('data:text/html,<button id="ok">x</button>')
-    assert.equal(await page.evaluate(() => window.__visivel(document.getElementById('ok'))), true)
+    await page!.goto('data:text/html,<button id="ok">x</button>')
+    assert.equal(await page!.evaluate(() => window.__visivel(document.getElementById('ok'))), true)
   })
-})
+  }
+)

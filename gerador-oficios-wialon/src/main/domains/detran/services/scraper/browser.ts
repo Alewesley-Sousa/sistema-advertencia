@@ -21,6 +21,7 @@ export function getChromeExecutablePath():
   | string
   | undefined {
   const possiblePaths = [
+    process.env.PUPPETEER_EXECUTABLE_PATH || '',
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     path.join(
@@ -30,10 +31,13 @@ export function getChromeExecutablePath():
       'Application',
       'chrome.exe'
     ),
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   ]
 
   for (const chromePath of possiblePaths) {
-    if (fs.existsSync(chromePath)) {
+    if (chromePath && fs.existsSync(chromePath)) {
       log(
         'Chrome encontrado em:',
         chromePath
