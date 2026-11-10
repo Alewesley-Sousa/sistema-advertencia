@@ -9,7 +9,9 @@
     "dev": "concurrently --raw -k \"npm run dev:node\" \"npm run dev:ui\"",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "typecheck:server": "tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

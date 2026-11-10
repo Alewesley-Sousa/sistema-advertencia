@@ -4,7 +4,7 @@ import { NextFunction, Request, Response } from 'express'
 import { sincronizarInfracoesWialon } from '../services/wialonSyncService'
 
 export async function handleSincronizarDados(
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {

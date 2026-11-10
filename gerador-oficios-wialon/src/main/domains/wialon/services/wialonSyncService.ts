@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import {
-  WialonTaskMessage,
   parseWialonMessage,
+  type WialonTaskMessage,
 } from './wialon'
 
 import { infracaoRepository } from '../../infracoes/repositories/infracaoRepository'

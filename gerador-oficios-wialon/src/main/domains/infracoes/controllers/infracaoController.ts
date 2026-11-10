@@ -18,7 +18,7 @@ import {
 import { sendResponse } from '../../../utils/response'
 
 import { infracaoRepository } from '../repositories/infracaoRepository'
-import { OficioTemplateData } from '../templates/oficioTemplate'
+import type { OficioTemplateData } from '../templates/oficioTemplate'
 
 /**
  * 1. VISÃO OPERACIONAL
