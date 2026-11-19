@@ -6,6 +6,7 @@ import cors from 'cors'
 import { errorHandler } from './shared/errors/errorHandler'
 import { initDatabase } from './database/init'
 import { routes } from './routes'
+import { iniciarAutomacao } from './domains/detran/automacao/scheduler'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3334
@@ -24,7 +25,7 @@ const origensPermitidas = (process.env.CORS_ORIGIN || ORIGENS_PADRAO)
   .filter(Boolean)
 
 app.use(cors({ origin: origensPermitidas }))
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
 
 /* ═══════════════════════════════════════════════════════════════
    Banco de dados (storage/database.sqlite deste app)
@@ -47,4 +48,5 @@ app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`[DETRAN] Servidor rodando em http://localhost:${PORT}`)
+  iniciarAutomacao()
 })

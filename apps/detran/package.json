@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.server.json && tsc -p tsconfig.app.json",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "lint": "oxlint src"
+    "lint": "oxlint src",
+    "cofre:gerar-chave": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('base64'))\""
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -23,6 +24,8 @@
     "express": "^5.2.1",
     "handlebars": "^4.7.9",
     "lucide-react": "^1.46.0",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.10",
     "puppeteer": "^25.11.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -39,6 +42,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^24.13.4",
+    "@types/nodemailer": "^7.0.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

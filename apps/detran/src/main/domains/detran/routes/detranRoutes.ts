@@ -14,6 +14,13 @@ import {
   previaRelatorioPdf,
 } from '../controllers/infracaoDetranController'
 
+import {
+  apagarVeiculosAutomacao,
+  executarAutomacaoAgora,
+  importarVeiculosAutomacao,
+  statusAutomacao,
+} from '../controllers/automacaoController'
+
 export const detranRoutes = Router()
 
 // Ajustado para 'consultar-veiculo'
@@ -36,3 +43,8 @@ detranRoutes.post('/exportar', exportarMultasDetran)
 
 detranRoutes.post('/relatorio-pdf', gerarRelatorioPdf)
 detranRoutes.post('/relatorio-pdf/previa', previaRelatorioPdf)
+
+detranRoutes.get('/automacao/status', statusAutomacao)
+detranRoutes.put('/automacao/veiculos', importarVeiculosAutomacao)
+detranRoutes.delete('/automacao/veiculos', apagarVeiculosAutomacao)
+detranRoutes.post('/automacao/executar', executarAutomacaoAgora)

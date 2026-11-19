@@ -591,7 +591,12 @@ export function montarRelatorio(
   return {
     titulo: config.titulo?.trim() || 'Relatório de débitos e multas',
     emitidoEm: formatarEmissao(agora),
-    origemTexto: config.origem === 'RELATORIOS' ? 'Aba Relatórios' : 'Tabela de consultas',
+    origemTexto:
+      config.origem === 'RELATORIOS'
+        ? 'Aba Relatórios'
+        : config.origem === 'AUTOMACAO'
+          ? 'Automação semanal'
+          : 'Tabela de consultas',
     escopoTexto: `${ROTULOS_ESCOPO[config.escopo].titulo} · ${ROTULOS_AGRUPAMENTO[config.agrupamento].titulo}`,
     selecaoTexto: descreverSelecao(config, todos.length),
     ordenacaoTexto,

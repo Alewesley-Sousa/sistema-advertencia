@@ -67,6 +67,10 @@ Front ── POST /detran/consultar (1 veículo)  ou  POST /detran/processar-lot
 | GET | `/pdf/:id` · `/multas/:id/pdf` | PDF da consulta / de uma multa |
 | POST | `/exportar` | ZIP de multas |
 | POST | `/relatorio-pdf` | Relatório A4 em PDF conforme a configuração enviada |
+| GET | `/automacao/status` | Estado da automação (só contagens e histórico) |
+| PUT | `/automacao/veiculos` | Importa/substitui a lista (guardada cifrada) |
+| DELETE | `/automacao/veiculos` | Remove a lista guardada |
+| POST | `/automacao/executar` | Dispara a rotina semanal agora (202) |
 | POST | `/relatorio-pdf/previa` | Contagens (veículos, multas, valor) do que o PDF conteria |
 
 ## Relatório em PDF
@@ -81,6 +85,16 @@ Exportação configurável, disponível na tabela de consultas (botão **Relató
 - **Geração**: view model puro (`relatorioModelo.ts`) → template Handlebars (`relatorioTemplate.ts`) → Puppeteer (`page.pdf`, A4, rodapé "Página X de Y"). Logo e fonte Inter são embutidas a partir de `public/`.
 - **Limite conhecido**: IPVA e licenciamento mostram apenas a situação (o scraper não guarda valores deles).
 - Testes: `relatorio/relatorio.test.ts`.
+
+## Automação semanal (relatório por e-mail)
+
+Toda sexta-feira (padrão `0 7 * * 5`, fuso `America/Fortaleza`) o servidor decifra a lista, consulta o DETRAN-CE (concorrência 1 ou 2), gera o PDF e envia por e-mail. Desligada por padrão; configure o bloco "Automação semanal" do `.env.example` e abra **Automação semanal** na tela de consultas para importar a lista.
+
+- **Cofre**: `automacao/cofre.ts` — AES-256-GCM, IV aleatório por gravação, AAD fixo, tag de autenticação (adulteração é detectada). A chave vem de `DETRAN_COFRE_CHAVE` (`npm run cofre:gerar-chave`) ou de `DETRAN_COFRE_SENHA` (scrypt). Rotação: coloque a chave antiga em `DETRAN_COFRE_CHAVE_ANTERIOR`; a lista é regravada com a nova na próxima leitura. **Perdeu a chave = reimportar a lista.**
+- **Banco**: só o blob cifrado e a contagem ficam em `automacao_cofre`; o histórico (`automacao_execucoes`) não guarda placas nem e-mails. A API nunca devolve a lista.
+- **Resiliência**: falha em um veículo não derruba a rodada (PDF sai com aviso no e-mail); falha total (cofre ilegível, nenhuma consulta ok, PDF) envia e-mail de alerta; travas impedem duas rodadas ao mesmo tempo; e-mail com 3 tentativas e backoff (erros de autenticação/destinatário não são repetidos).
+- **E-mail**: `emailTemplate.ts` — tabelas + CSS inline, 600 px, logo e GIF opcional embutidos por CID, versão texto. Para o GIF, coloque `public/email/banner.gif` (≤ 1 MB, 600 px de largura; o **1º quadro** deve trazer a mensagem, pois o Outlook desktop não anima). Sem o arquivo, o e-mail sai sem GIF. Use remetente de domínio com SPF/DKIM/DMARC.
+- **Limites conhecidos**: o servidor precisa estar ligado na sexta (não há reposição de execução perdida — use "Executar agora"); o restante do `database.sqlite` (resultados das consultas) **não** é cifrado — proteja a pasta `storage/` com BitLocker/permissões do SO; a chave em `.env` é texto puro no disco, prefira variável de ambiente do sistema em produção; a API local não tem autenticação (não exponha a porta na rede).
 
 ## Tabelas
 

@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/pages/ConsultaDetranPage.tsx
 
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, CheckSquare, Download, FileBarChart2, FileText, Loader2, X } from 'lucide-react'
+import { ArrowLeft, CheckSquare, Download, CalendarClock, FileBarChart2, FileText, Loader2, X } from 'lucide-react'
 
 import { PageHeader } from '../shared/layout/PageHeader'
 import { Pagination } from '../shared/ui/Pagination'
@@ -13,6 +13,7 @@ import { LoteUploadModal } from '../features/detran/components/LoteUploadModal'
 import { DetranTable, podeExportar  } from '../features/detran/components/DetranTable'
 import { DetranMultasDrawer } from '../features/detran/components/DetranMultasDrawer'
 import { DetranProgressModal } from '../features/detran/components/DetranProgressModal'
+import { AutomacaoSemanalDrawer } from '../features/detran/components/AutomacaoSemanalDrawer'
 import {
   RelatorioPdfDrawer,
   type OpcaoSelecaoRelatorio,
@@ -40,6 +41,7 @@ export function ConsultaDetranPage() {
   const [modoSelecao, setModoSelecao] = useState(false)
   const [mostrarRelatorios, setMostrarRelatorios] = useState(false)
   const [relatorioPdfAberto, setRelatorioPdfAberto] = useState(false)
+  const [automacaoAberta, setAutomacaoAberta] = useState(false)
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const ultimoIndexRef = useRef<number | null>(null)
@@ -243,6 +245,15 @@ const handleToggleTodos = (marcar: boolean) => {
           ? 'Indicadores consolidados das consultas realizadas e dos débitos identificados.'
           : 'Consulte débitos e multas de veículos diretamente no portal do DETRAN-CE.'}
         action={(
+          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAutomacaoAberta(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:border-petrol-400 hover:bg-slate-50 dark:border-petrol-700 dark:bg-petrol-900 dark:text-petrol-100 dark:hover:bg-petrol-800"
+          >
+            <CalendarClock className="h-4 w-4" />
+            Automação semanal
+          </button>
           <button
             type="button"
             onClick={() => setMostrarRelatorios((valor) => !valor)}
@@ -255,6 +266,7 @@ const handleToggleTodos = (marcar: boolean) => {
             )}
             {mostrarRelatorios ? 'Voltar às consultas' : 'Relatórios'}
           </button>
+          </div>
         )}
       />
 
@@ -632,6 +644,8 @@ const handleToggleTodos = (marcar: boolean) => {
         multas={multas}
         carregando={carregandoMultas}
       />
+
+      <AutomacaoSemanalDrawer aberto={automacaoAberta} onFechar={() => setAutomacaoAberta(false)} />
 
       <RelatorioPdfDrawer
         aberto={relatorioPdfAberto}

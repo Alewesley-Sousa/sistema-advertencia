@@ -10,7 +10,7 @@
  * ========================================================================*/
 
 /** De onde o usuário abriu a exportação (aparece no cabeçalho do PDF). */
-export const ORIGENS_RELATORIO = ['TABELA', 'RELATORIOS'] as const
+export const ORIGENS_RELATORIO = ['TABELA', 'RELATORIOS', 'AUTOMACAO'] as const
 export type OrigemRelatorio = (typeof ORIGENS_RELATORIO)[number]
 
 /**

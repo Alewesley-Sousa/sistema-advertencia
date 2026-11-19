@@ -275,6 +275,51 @@ export async function previaRelatorioPdfDetran(
 }
 
 /* ==========================================================================
+ * Automação semanal
+ * ========================================================================*/
+
+export interface ExecucaoAutomacao {
+  id: number
+  origem: 'AGENDADA' | 'MANUAL'
+  status: 'EXECUTANDO' | 'CONCLUIDA' | 'PARCIAL' | 'FALHA'
+  totalVeiculos: number
+  comErro: number
+  emailEnviado: boolean
+  mensagem: string | null
+  iniciadaEm: string
+  finalizadaEm: string | null
+}
+
+export interface StatusAutomacao {
+  agendada: boolean
+  cron: string | null
+  timezone: string | null
+  emExecucao: boolean
+  cofre: { existe: boolean; total: number; atualizadoEm: string | null }
+  execucoes: ExecucaoAutomacao[]
+}
+
+export async function buscarStatusAutomacao(): Promise<StatusAutomacao> {
+  const { data } = await api.get('/detran/automacao/status')
+  return data as StatusAutomacao
+}
+
+export async function importarVeiculosAutomacao(
+  veiculos: Array<{ placa: string; chassi: string; modelo?: string; contrato?: string }>
+): Promise<{ total: number; rejeitadas: number; duplicadas: number }> {
+  const { data } = await api.put('/detran/automacao/veiculos', { veiculos })
+  return data
+}
+
+export async function removerVeiculosAutomacao(): Promise<void> {
+  await api.delete('/detran/automacao/veiculos')
+}
+
+export async function executarAutomacaoAgora(): Promise<void> {
+  await api.post('/detran/automacao/executar')
+}
+
+/* ==========================================================================
  * Helpers internos de download
  * ========================================================================*/
 
