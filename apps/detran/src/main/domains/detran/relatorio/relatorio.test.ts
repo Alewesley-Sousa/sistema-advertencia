@@ -131,9 +131,22 @@ describe('período das multas (semana)', () => {
     assert.match(r.veiculos[0].subtotalValor, /300,00/)
     assert.equal(r.periodoTexto, '14/11/2026 a 19/11/2026')
   })
-  it('o resumo continua com todas as multas ativas', () => {
+  it('o resumo considera só as multas da semana; veículos analisados continua geral', () => {
     const r = montarRelatorio(cfg({ periodoMultas: periodo }), V, MP, hoje)
-    assert.equal(r.kpisPrincipais.find((k) => k.rotulo === 'Multas ativas')!.valor, '4')
+    const k = (rotulo: string) => r.kpisPrincipais.find((x) => x.rotulo === rotulo)!.valor
+    assert.equal(k('Total de veículos analisados'), '3')
+    assert.equal(k('Veículos com multas'), '1')
+    assert.equal(k('Multas da semana'), '2')
+    assert.match(k('Valor das multas'), /300,00/)
+    assert.equal(r.porContrato.length, 1)
+    assert.equal(r.porContrato[0].multas, 2)
+  })
+  it('a prévia (usada no e-mail) também respeita o período', () => {
+    const p = calcularPrevia(cfg({ periodoMultas: periodo }), V, MP)
+    assert.equal(p.veiculos, 3)
+    assert.equal(p.veiculosComMultasAtivas, 1)
+    assert.equal(p.multasAtivas, 2)
+    assert.equal(p.valorTotalMultas, 300)
   })
   it('sem multas no período marca semMultasNoPeriodo', () => {
     const r = montarRelatorio(cfg({ periodoMultas: { de: '2026-01-01', ate: '2026-01-07' } }), V, MP, hoje)

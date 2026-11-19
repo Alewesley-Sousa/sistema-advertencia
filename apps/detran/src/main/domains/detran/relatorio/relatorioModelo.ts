@@ -408,12 +408,17 @@ export function calcularPrevia(
 ): RelatorioPrevia {
   const todos = agruparPorVeiculo(veiculos, multas)
   const noEscopo = todos.filter((item) => atendeEscopo(item, config.escopo))
+  // Com período, as contagens de multas valem só para as multas da semana
+  const periodo = config.periodoMultas
+  const consideradas = periodo
+    ? noEscopo.map((i) => filtrarPeriodo(i, diaIso(periodo.de), diaIso(periodo.ate)))
+    : noEscopo
   return {
     veiculosSelecionados: todos.length,
     veiculos: noEscopo.length,
-    veiculosComMultasAtivas: noEscopo.filter((i) => i.multas.length > 0).length,
-    multasAtivas: noEscopo.reduce((t, i) => t + i.multas.length, 0),
-    valorTotalMultas: noEscopo.reduce((t, i) => t + i.valorCentavos, 0) / 100,
+    veiculosComMultasAtivas: consideradas.filter((i) => i.multas.length > 0).length,
+    multasAtivas: consideradas.reduce((t, i) => t + i.multas.length, 0),
+    valorTotalMultas: consideradas.reduce((t, i) => t + i.valorCentavos, 0) / 100,
   }
 }
 
@@ -486,10 +491,7 @@ export function montarRelatorio(
       : []
 
   /* ---- totais ---- */
-  const totalMultas = ordenados.reduce((t, i) => t + i.multas.length, 0)
-  const totalCentavos = ordenados.reduce((t, i) => t + i.valorCentavos, 0)
-  const totalPagarCentavos = ordenados.reduce((t, i) => t + i.valorPagarCentavos, 0)
-  // Totais do detalhamento (iguais aos acima quando não há período)
+  // Totais das multas consideradas (com período: só as da semana; sem período: todas as ativas)
   const detMultas = detalhe.reduce((t, i) => t + i.multas.length, 0)
   const detCentavos = detalhe.reduce((t, i) => t + i.valorCentavos, 0)
   const detPagarCentavos = detalhe.reduce((t, i) => t + i.valorPagarCentavos, 0)
@@ -500,11 +502,11 @@ export function montarRelatorio(
   let porContrato: LinhaContratoView[] = []
 
   if (secoes.resumoConsolidado) {
-    const comMultas = ordenados.filter((i) => i.multas.length > 0).length
+    const comMultas = detalhe.filter((i) => i.multas.length > 0).length
     const ipvaDebito = ordenados.filter((i) => i.veiculo.ipvaStatus === 'DEBITO').length
     const licDebito = ordenados.filter((i) => i.veiculo.licenciamentoStatus === 'DEBITO').length
-    const boletos = ordenados.reduce((t, i) => t + i.multas.filter((m) => !!m.caminhoPdf).length, 0)
-    const vencidas = ordenados.reduce(
+    const boletos = detalhe.reduce((t, i) => t + i.multas.filter((m) => !!m.caminhoPdf).length, 0)
+    const vencidas = detalhe.reduce(
       (t, i) =>
         t +
         i.multas.filter((m) => {
@@ -513,7 +515,7 @@ export function montarRelatorio(
         }).length,
       0
     )
-    const comValorPagar = ordenados.reduce(
+    const comValorPagar = detalhe.reduce(
       (t, i) => t + i.multas.filter((m) => String(m.valorPagar ?? '').trim() !== '').length,
       0
     )
@@ -527,23 +529,23 @@ export function montarRelatorio(
       {
         rotulo: 'Veículos com multas',
         valor: inteiro.format(comMultas),
-        detalhe: `${inteiro.format(ordenados.length - comMultas)} sem multas ativas`,
+        detalhe: `${inteiro.format(ordenados.length - comMultas)} sem multas ${periodo ? 'na semana' : 'ativas'}`,
       },
       {
-        rotulo: 'Multas ativas',
-        valor: inteiro.format(totalMultas),
+        rotulo: periodo ? 'Multas da semana' : 'Multas ativas',
+        valor: inteiro.format(detMultas),
         detalhe: vencidas > 0 ? `${inteiro.format(vencidas)} com vencimento passado` : 'nenhuma vencida',
       },
       {
         rotulo: 'Valor das multas',
-        valor: formatarMoeda(totalCentavos),
-        detalhe: 'soma dos valores informados',
+        valor: formatarMoeda(detCentavos),
+        detalhe: periodo ? 'multas da semana' : 'soma dos valores informados',
       },
     ]
     kpisSecundarios = [
       {
         rotulo: 'Valor a pagar',
-        valor: formatarMoeda(totalPagarCentavos),
+        valor: formatarMoeda(detPagarCentavos),
         detalhe: `em ${inteiro.format(comValorPagar)} multa(s) com valor a pagar`,
       },
       {
@@ -559,13 +561,13 @@ export function montarRelatorio(
       {
         rotulo: 'Boletos disponíveis',
         valor: inteiro.format(boletos),
-        detalhe: `de ${inteiro.format(totalMultas)} multa(s) ativa(s)`,
+        detalhe: `de ${inteiro.format(detMultas)} multa(s) ativa(s)`,
       },
     ]
 
     /* por contrato */
     const contratos = new Map<string, { veiculos: number; multas: number; centavos: number }>()
-    for (const i of ordenados) {
+    for (const i of detalhe) {
       const nome = i.veiculo.contrato?.trim() || 'Sem contrato'
       const atual = contratos.get(nome) ?? { veiculos: 0, multas: 0, centavos: 0 }
       atual.veiculos++

@@ -93,6 +93,7 @@ ${CSS}
 
 {{#if mostrarResumo}}
 <h2 class="secao">Resumo consolidado</h2>
+{{#if temPeriodo}}<div class="nota" style="margin:-4px 0 8px;">Multas, valores e contratos referem-se às infrações de {{periodoTexto}}. O total de veículos analisados e a situação de IPVA e licenciamento consideram toda a frota selecionada.</div>{{/if}}
 <div class="kpis">
 {{#each kpisPrincipais}}<div class="kpi"><div class="r">{{rotulo}}</div><div class="v">{{valor}}</div><div class="d">{{detalhe}}</div></div>{{/each}}
 </div>
