@@ -7,8 +7,8 @@ import { initDatabase } from './database/init'
 import { consolidarInfracoesPendentes } from './domains/infracoes/services/consolidacaoService'
 import { routes } from './routes'
 import { iniciarCronJobs } from './jobs/infracoesCron'
-import { errorHandler } from '@force/shared/server'
-import { AppError } from '@force/shared/server'
+import { errorHandler } from './shared/errors/errorHandler'
+import { AppError } from './shared/errors/AppError'
 import { seedInfracoesDev } from './domains/infracoes/services/wialonMockService'
 
 const app = express()

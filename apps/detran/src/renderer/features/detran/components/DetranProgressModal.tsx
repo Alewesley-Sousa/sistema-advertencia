@@ -1,6 +1,6 @@
 // apps/detran/src/renderer/features/detran/components/DetranProgressModal.tsx
 
-import { Modal } from '@force/shared/web'
+import { Modal } from '../../../shared/ui/Modal'
 import { Loader2, ChevronUp, X, CheckCircle2, CircleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { DetranProgresso } from '../types'

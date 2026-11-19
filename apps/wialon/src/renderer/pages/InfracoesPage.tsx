@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import type { Infracao } from '../features/infracoes/services/infracoes'
 
-import { Card } from '@force/shared/web'
-import { Pagination } from '@force/shared/web'
+import { Card } from '../shared/ui/Card'
+import { Pagination } from '../shared/ui/Pagination'
 
 import { InfracoesMetricas } from '../features/infracoes/components/InfracoesMetricas'
 import { InfracaoFila } from '../features/infracoes/components/InfracaoFila'

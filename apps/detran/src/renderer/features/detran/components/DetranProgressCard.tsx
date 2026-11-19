@@ -9,9 +9,9 @@ import {
   Sparkles,
   Ban,
 } from 'lucide-react'
-import { Button } from '@force/shared/web'
-import { Card } from '@force/shared/web'
-import { cn } from '@force/shared/web'
+import { Button } from '../../../shared/ui/Button'
+import { Card } from '../../../shared/ui/Card'
+import { cn } from '../../../shared/lib/cn'
 import { DetranFleetAnimation } from './DetranFleetAnimation'
 import type {
   DetranProgresso,

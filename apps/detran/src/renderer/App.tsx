@@ -1,7 +1,8 @@
 // apps/detran/src/renderer/App.tsx
 
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { NotFoundPage, Toaster } from '@force/shared/web'
+import { NotFoundPage } from './shared/layout/NotFoundPage'
+import { Toaster } from './shared/ui/Toast'
 import { MainLayout } from './components/layout/MainLayout'
 import { ConsultaDetranPage } from './pages/ConsultaDetranPage'
 

@@ -3,7 +3,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import { errorHandler } from '@force/shared/server'
+import { errorHandler } from './shared/errors/errorHandler'
 import { initDatabase } from './database/init'
 import { routes } from './routes'
 

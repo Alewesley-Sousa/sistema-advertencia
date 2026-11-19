@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import type { Infracao } from '../services/infracoes'
 import { InfracaoFilaItem } from './InfracaoFilaItem'
-import { cn } from '@force/shared/web'
+import { cn } from '../../../shared/lib/cn'
 
 interface InfracaoFilaProps {
   infracoes: Infracao[]

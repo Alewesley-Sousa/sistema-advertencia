@@ -5,7 +5,7 @@ import {
   salvarConfiguracao,
   type Configuracao,
 } from '../services/configuracoes'
-import { showToast } from '@force/shared/web'
+import { showToast } from '../../../shared/ui/Toast'
 
 const CHAVE_EMAIL = 'email_notificacao'
 

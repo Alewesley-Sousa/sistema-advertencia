@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
 } from 'lucide-react'
-import { Drawer } from '@force/shared/web'
+import { Drawer } from '../../../shared/ui/Drawer'
 import { DetranMultaStatusBadge } from './DetranMultaStatusBadge'
 import {
   obterUrlPdfMultaDetran,
@@ -22,7 +22,7 @@ import {
   traduzirErroEmissaoBoleto,
   URL_PORTAL_DETRAN_CE,
 } from '../utils'
-import { formatarValorMulta } from '@force/shared/web'
+import { formatarValorMulta } from '../../../shared/lib/format'
 
 interface DetranMultasDrawerProps {
   open: boolean

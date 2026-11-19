@@ -1,6 +1,3 @@
-/* Tailwind + tema compartilhado (@force/shared). Cada app declara aqui o que escaneia. */
+/* Tailwind + tema do app */
 @import "tailwindcss";
-@import "../../../../packages/shared/src/web/theme.css";
-
-/* Tailwind v4 só escaneia a raiz do app; o pacote compartilhado precisa ser informado. */
-@source "../../../../packages/shared/src/web";
+@import "./shared/theme.css";

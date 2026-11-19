@@ -1,41 +1,27 @@
 # sistema-advertencia
 
-Monorepo (npm workspaces) com dois apps independentes e um pacote compartilhado explícito.
+Repositório com **dois projetos independentes**. Cada pasta é um projeto completo (próprio `package.json`, lockfile, `node_modules`, servidor, banco SQLite, `.env`, build e documentação) e pode ser copiada e executada sozinha. Não há workspace, pacote compartilhado nem import entre eles.
 
-| Pacote | O que é | Front (Vite) | API (Express) | Banco |
-| :--- | :--- | :--- | :--- | :--- |
-| [`apps/wialon`](apps/wialon) (`@force/wialon`) | Gerador de ofícios de advertência por excesso de velocidade (integração Wialon) | `:3000` | `:3333` | `apps/wialon/storage/database.sqlite` |
-| [`apps/detran`](apps/detran) (`@force/detran`) | Buscador de multas DETRAN-CE (consulta individual e em lote, download de boletos, relatórios, ZIP) | `:3001` | `:3334` | `apps/detran/storage/database.sqlite` |
-| [`packages/shared`](packages/shared) (`@force/shared`) | Infraestrutura comum: erros/respostas HTTP/logger (server) e UI kit, tema, cliente HTTP (web) | — | — | — |
-
-Cada app tem o próprio servidor, banco SQLite, `.env`, build e porta. Um app **nunca importa do outro**; o que for comum vive em `packages/shared` e é importado por `@force/shared/...`.
-
-> Não há Electron/Tauri neste repositório: cada app é um servidor Node (Express) local + front React (Vite).
-
-## Rodando
+| Projeto | O que é | API | Front |
+| :--- | :--- | :--- | :--- |
+| [`apps/wialon`](apps/wialon) | Gerador de ofícios de advertência por excesso de velocidade (integração Wialon) | `:3333` | `:3000` |
+| [`apps/detran`](apps/detran) | Buscador de multas DETRAN-CE (consulta avulsa e em lote, boletos, relatórios, ZIP) | `:3334` | `:3001` |
 
 ```bash
-npm install                 # na raiz (instala todos os workspaces)
-cp apps/wialon/.env.example apps/wialon/.env
-cp apps/detran/.env.example apps/detran/.env
-
-npm run dev:wialon          # API :3333 + front :3000
-npm run dev:detran          # API :3334 + front :3001
+cd apps/wialon   # ou apps/detran
+npm install && cp .env.example .env && npm run dev
 ```
 
-Outros comandos (na raiz): `npm run build`, `npm run typecheck`, `npm run test`, `npm run lint`. Para um app só: `npm run build:wialon`, `npm run build:detran`, ou `npm run <script> -w @force/<app>`.
+Cada projeto tem seu `README.md` (stack, fluxo, rotas, regras de negócio, estado do roadmap) e sua pasta `docs/`.
 
-Os dois apps podem rodar ao mesmo tempo (portas distintas). Os dados (`storage/`) são criados na pasta de cada app, a partir do diretório de trabalho do `npm run`.
+> Não há Electron/Tauri: cada projeto é um servidor Node (Express) local + front React (Vite).
 
-## Migrando um `storage/` existente
+**Duplicação intencional:** UI kit, erros/respostas HTTP, cliente HTTP, tema e fontes existem nas duas pastas (`src/main/shared`, `src/renderer/shared`, `public/`). Uma correção nesses arquivos precisa ser feita nos dois lugares.
 
-Antes da reorganização existia um único `gerador-oficios-wialon/storage/database.sqlite` com as tabelas dos dois projetos. Para não perder dados locais:
+## Migrando um `storage/` antigo
 
-- copie o arquivo (e `pdfs/`, se houver) para `apps/wialon/storage/` — o app Wialon usa só `infracoes` e `configuracoes`;
-- copie o mesmo arquivo para `apps/detran/storage/` (mais as pastas de PDFs/downloads do DETRAN) — o app DETRAN usa só `infracoes_detran`, `infracoes_detran_multas` e `lotes_consultas`.
+Antes existia um único `gerador-oficios-wialon/storage/database.sqlite` com as tabelas dos dois projetos. Copie o arquivo para `apps/wialon/storage/` (usa `infracoes` e `configuracoes`) e outra cópia para `apps/detran/storage/` (usa `infracoes_detran`, `infracoes_detran_multas` e `lotes_consultas`), junto com as pastas `documentos/` de cada um. As tabelas do outro projeto ficam inertes.
 
-As tabelas do outro app ficam inertes no arquivo e podem ser removidas depois. (`storage/` e `.env` estão no `.gitignore`.)
+## Material antigo
 
-## Documentação
-
-Veja [`docs/README.md`](docs/README.md).
+[`docs/legado/`](docs/legado) guarda a especificação HTML antiga (descreve Electron/webhook, que não existem) e a paleta de cores. Não é fonte de verdade.

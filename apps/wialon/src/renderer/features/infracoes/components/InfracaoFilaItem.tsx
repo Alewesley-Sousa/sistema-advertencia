@@ -2,7 +2,7 @@
 
 import { MapPin } from 'lucide-react'
 import type { Infracao } from '../services/infracoes'
-import { cn } from '@force/shared/web'
+import { cn } from '../../../shared/lib/cn'
 
 interface InfracaoFilaItemProps {
   item: Infracao

@@ -13,22 +13,14 @@ import {
   Check,
   Minus,
 } from 'lucide-react'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableEmpty,
-} from '@force/shared/web'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from '../../../shared/ui/Table'
 import { DetranStatusBadge } from './DetranStatusBadge'
 import {
   obterUrlPdfDetran,
   type InfracaoDetran,
   type SituacaoDebito as SituacaoDebitoTipo,
 } from '../services/detran'
-import { formatarDataHora } from '@force/shared/web'
+import { formatarDataHora } from '../../../shared/lib/format'
 
 /**
  * Regra de seleção: só dá pra marcar/exportar consultas que já têm pelo

@@ -12,9 +12,9 @@ import {
   Gauge,
   Zap,
 } from 'lucide-react'
-import { Modal } from '@force/shared/web'
-import { Button } from '@force/shared/web'
-import { cn } from '@force/shared/web'
+import { Modal } from '../../../shared/ui/Modal'
+import { Button } from '../../../shared/ui/Button'
+import { cn } from '../../../shared/lib/cn'
 import type { ProcessarLotePayload } from '../services/detran'
 
 interface LoteUploadModalProps {

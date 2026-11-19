@@ -1,5 +1,5 @@
 import { api } from '../../../services/api'
-import { type BaseFiltros, type MessageResponse } from '@force/shared/web/api'
+import { type BaseFiltros, type MessageResponse } from '../../../shared/api/types'
 
 export type InfracaoStatus =
   | 'PENDENTE'

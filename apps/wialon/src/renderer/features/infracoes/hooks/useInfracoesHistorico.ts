@@ -3,7 +3,7 @@ import {
   buscarHistoricoInfracoes,
   type Infracao
 } from '../services/infracoes'
-import type { PaginatedResponse, BaseFiltros } from '@force/shared/web/api'
+import type { PaginatedResponse, BaseFiltros } from '../../../shared/api/types'
 
 export function useInfracoesHistorico(abaAtiva: 'OPERACIONAL' | 'HISTORICO') {
   const [data, setData] = useState<PaginatedResponse<Infracao> | null>(null)

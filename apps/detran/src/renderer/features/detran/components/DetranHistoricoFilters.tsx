@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Check, ChevronDown, Filter } from 'lucide-react'
-import { SearchInput } from '@force/shared/web'
+import { SearchInput } from '../../../shared/ui/SearchInput'
 
 export type FiltroStatusDetran =
   | 'TODOS'

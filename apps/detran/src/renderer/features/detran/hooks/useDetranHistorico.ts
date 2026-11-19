@@ -5,7 +5,7 @@ import {
   listarHistoricoDetran,
   type InfracaoDetran,
 } from '../services/detran'
-import type { Pagination } from '@force/shared/web/api'
+import type { Pagination } from '../../../shared/api/types'
 import type { FiltroStatusDetran } from '../components/DetranHistoricoFilters'
 
 const LIMITE_POR_PAGINA = 10

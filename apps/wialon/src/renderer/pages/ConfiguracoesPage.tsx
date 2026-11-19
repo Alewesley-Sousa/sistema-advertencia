@@ -11,9 +11,9 @@ import { Plus, Trash2, Mail, Pencil, Check, X } from 'lucide-react'
 
 import type { Configuracao } from '../features/configuracoes/services/configuracoes'
 
-import { Button } from '@force/shared/web'
-import { Card, CardHeader, CardTitle, CardDescription } from '@force/shared/web'
-import { cn } from '@force/shared/web'
+import { Button } from '../shared/ui/Button'
+import { Card, CardHeader, CardTitle, CardDescription } from '../shared/ui/Card'
+import { cn } from '../shared/lib/cn'
 
 import { useEmailsNotificacao } from '../features/configuracoes/hooks/useEmailsNotificacao'
 

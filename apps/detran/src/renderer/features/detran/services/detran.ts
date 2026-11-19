@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/features/detran/services/detran.ts
 
 import { api } from '../../../services/api'
-import { type BaseFiltros, type MessageResponse, type Pagination } from '@force/shared/web/api'
+import { type BaseFiltros, type MessageResponse, type Pagination } from '../../../shared/api/types'
 
 export type DetranStatus = 'PENDENTE' | 'PROCESSANDO' | 'QUITADO' | 'COM_DEBITO' | 'ERRO'
 export type SituacaoDebito = 'DEBITO' | 'SEM_DEBITO' | 'INFORMACAO' | 'DESCONHECIDO'

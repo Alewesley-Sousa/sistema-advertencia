@@ -2,11 +2,11 @@
 
 import { FileText, MoreHorizontal, MapPin, X } from 'lucide-react'
 import type { Infracao } from '../services/infracoes'
-import { Button } from '@force/shared/web'
+import { Button } from '../../../shared/ui/Button'
 import { InfracaoWorkflow } from './InfracaoWorkflow'
 import { InfracaoTelemetria } from './InfracaoTelemetria'
-import { formatarDataHora } from '@force/shared/web'
-import { cn } from '@force/shared/web'
+import { formatarDataHora } from '../../../shared/lib/format'
+import { cn } from '../../../shared/lib/cn'
 
 interface InfracaoDrawerProps {
   item: Infracao

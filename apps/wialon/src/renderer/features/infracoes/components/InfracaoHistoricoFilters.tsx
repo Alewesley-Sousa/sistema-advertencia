@@ -2,8 +2,8 @@
 
 import type { ChangeEvent } from 'react'
 import { Calendar, Filter, X } from 'lucide-react'
-import { SearchInput } from '@force/shared/web'
-import { Button } from '@force/shared/web'
+import { SearchInput } from '../../../shared/ui/SearchInput'
+import { Button } from '../../../shared/ui/Button'
 
 interface InfracaoHistoricoFiltersProps {
   busca: string

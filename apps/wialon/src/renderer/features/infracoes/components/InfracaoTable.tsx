@@ -3,14 +3,7 @@
 import { Loader2 } from 'lucide-react'
 import type { Infracao } from '../services/infracoes'
 import { InfracaoTableRow } from './InfracaoTableRow'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableEmpty,
-} from '@force/shared/web'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableEmpty } from '../../../shared/ui/Table'
 import type {
   CampoOrdenacao,
   DirecaoOrdenacao,

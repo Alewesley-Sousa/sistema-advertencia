@@ -3,7 +3,7 @@ import {
   consultarVeiculoDetran,
   type ConsultarDetranResult,
 } from '../services/detran'
-import { showToast } from '@force/shared/web'
+import { showToast } from '../../../shared/ui/Toast'
 
 interface ConsultarParams {
   placa: string

@@ -8,7 +8,7 @@ import {
   type ItemVeiculoLote,
   type ProcessarLotePayload,
 } from '../services/detran'
-import { showToast } from '@force/shared/web'
+import { showToast } from '../../../shared/ui/Toast'
 import {
   normalizarPlaca,
   normalizarChassi,

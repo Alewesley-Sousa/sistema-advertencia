@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { listarMultasDaConsulta, type MultaDetran } from '../services/detran'
-import { showToast } from '@force/shared/web'
+import { showToast } from '../../../shared/ui/Toast'
 
 export function useDetranMultas() {
   const [multas, setMultas] = useState<MultaDetran[]>([])

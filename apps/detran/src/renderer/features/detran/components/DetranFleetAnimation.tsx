@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/features/detran/components/DetranFleetAnimation.tsx
 
 import { useEffect, useRef, useState } from 'react'
-import { cn } from '@force/shared/web'
+import { cn } from '../../../shared/lib/cn'
 
 interface DetranFleetAnimationProps {
   percentual: number

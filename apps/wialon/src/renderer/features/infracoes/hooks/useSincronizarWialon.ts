@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { sincronizarDadosWialon } from '../services/infracoes'
-import { showToast } from '@force/shared/web'
+import { showToast } from '../../../shared/ui/Toast'
 
 export function useSincronizarWialon(onSucesso?: () => void) {
   const [sincronizando, setSincronizando] = useState(false)

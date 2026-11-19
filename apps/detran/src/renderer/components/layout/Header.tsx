@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/components/layout/Header.tsx
 
-import logoForce from '@force/shared/web/assets/logo-force2.png'
-import { ThemeToggle } from '@force/shared/web'
+import logoForce from '../../shared/assets/logo-force2.png'
+import { ThemeToggle } from '../../shared/ui/ThemeToggle'
 
 export function Header() {
   return (

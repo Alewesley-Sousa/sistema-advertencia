@@ -14,9 +14,9 @@
 
 import { Request, Response } from 'express'
 import { configuracaoRepository } from '../repositories/configuracaoRepository'
-import { sendResponse } from '@force/shared/server'
-import { parseStringParam } from '@force/shared/server'
-import { AppError } from '@force/shared/server'
+import { sendResponse } from '../../../shared/utils/response'
+import { parseStringParam } from '../../../shared/utils/requestHelpers'
+import { AppError } from '../../../shared/errors/AppError'
 
 export const configuracoesController = {
   listar: (_req: Request, res: Response) => {

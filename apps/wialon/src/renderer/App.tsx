@@ -16,9 +16,9 @@ import { MainLayout } from './components/layout/MainLayout'
 import { PdfModal } from './features/infracoes/components/PdfModal'
 import { InfracoesPage } from './pages/InfracoesPage'
 import { ConfiguracoesPage } from './pages/ConfiguracoesPage'
-import { NotFoundPage } from '@force/shared/web'
+import { NotFoundPage } from './shared/layout/NotFoundPage'
 
-import { Toaster, showToast } from '@force/shared/web'
+import { Toaster, showToast } from './shared/ui/Toast'
 import type { InfracoesAba } from './components/layout/Header'
 
 export function App() {

@@ -3,8 +3,8 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowLeft, CheckSquare, Download, FileBarChart2, Loader2, X } from 'lucide-react'
 
-import { PageHeader } from '@force/shared/web'
-import { Pagination } from '@force/shared/web'
+import { PageHeader } from '../shared/layout/PageHeader'
+import { Pagination } from '../shared/ui/Pagination'
 
 import { DetranForm } from '../features/detran/components/DetranForm'
 import { DetranLotePanel } from '../features/detran/components/DetranLotePanel'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { gerarPdfInfracao } from '../services/infracoes'
-import { showToast } from '@force/shared/web'
+import { showToast } from '../../../shared/ui/Toast'
 
 interface UseGerarPdfOptions {
   /** Callback externo opcional — se passado, delega para ele e não gera localmente */

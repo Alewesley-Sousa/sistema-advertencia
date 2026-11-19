@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/features/detran/components/DetranMultaStatusBadge.tsx
 
 import { CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
-import { Badge, type BadgeVariant } from '@force/shared/web'
+import { Badge, type BadgeVariant } from '../../../shared/ui/Badge'
 import type { MultaDetran } from '../services/detran'
 
 interface DetranMultaStatusBadgeProps {

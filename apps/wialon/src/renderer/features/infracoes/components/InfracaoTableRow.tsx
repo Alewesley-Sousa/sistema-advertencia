@@ -5,7 +5,7 @@ import {
   type Infracao,
   formatarDataHoraInfracao,
 } from '../services/infracoes'
-import { StatusBadge } from '@force/shared/web'
+import { StatusBadge } from '../../../shared/ui/StatusBadge'
 import { api } from '../../../services/api'
 
 interface InfracaoTableRowProps {

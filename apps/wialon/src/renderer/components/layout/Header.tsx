@@ -2,9 +2,9 @@
 
 import { NavLink, useLocation } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
-import logoForce from '@force/shared/web/assets/logo-force2.png'
-import { cn } from '@force/shared/web'
-import { ThemeToggle } from '@force/shared/web'
+import logoForce from '../../shared/assets/logo-force2.png'
+import { cn } from '../../shared/lib/cn'
+import { ThemeToggle } from '../../shared/ui/ThemeToggle'
 
 export type InfracoesAba = 'OPERACIONAL' | 'HISTORICO'
 

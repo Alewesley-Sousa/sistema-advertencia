@@ -1,16 +1,8 @@
 // apps/detran/src/renderer/features/detran/components/DetranMultasModal.tsx
 
 import { Download, Loader2 } from 'lucide-react'
-import { Modal } from '@force/shared/web'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableEmpty,
-} from '@force/shared/web'
+import { Modal } from '../../../shared/ui/Modal'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from '../../../shared/ui/Table'
 import { DetranMultaStatusBadge } from './DetranMultaStatusBadge'
 import {
   obterUrlPdfMultaDetran,

@@ -11,9 +11,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 
-import { AppError } from '@force/shared/server'
-import { sendResponse } from '@force/shared/server'
-import { parseParamId, parsePaginationParams } from '@force/shared/server'
+import { AppError } from '../../../shared/errors/AppError'
+import { sendResponse } from '../../../shared/utils/response'
+import { parseParamId, parsePaginationParams } from '../../../shared/utils/requestHelpers'
 
 import { detranRepository } from '../repositories/detranRepository'
 import { consultarEPersistir, processarFilaLote } from '../services/detranService'

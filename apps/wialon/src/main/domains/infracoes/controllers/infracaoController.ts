@@ -9,13 +9,10 @@ import { enviarOficioEmail } from '../../../services/emailService'
 import { gerarPdfOficio } from '../../../services/pdfService'
 import { gerarPdfOficioBuffer } from '../../../services/pdfService'
 
-import { AppError } from '@force/shared/server'
+import { AppError } from '../../../shared/errors/AppError'
 
-import {
-  parseParamId,
-  parsePaginationParams,
-} from '@force/shared/server'
-import { sendResponse } from '@force/shared/server'
+import { parseParamId, parsePaginationParams } from '../../../shared/utils/requestHelpers'
+import { sendResponse } from '../../../shared/utils/response'
 
 import { infracaoRepository } from '../repositories/infracaoRepository'
 import type { OficioTemplateData } from '../templates/oficioTemplate'

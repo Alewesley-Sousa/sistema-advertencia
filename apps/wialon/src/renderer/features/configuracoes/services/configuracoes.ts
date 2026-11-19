@@ -1,7 +1,7 @@
 // apps/wialon/src/renderer/features/configuracoes/services/configuracoes.ts
 
 import { api } from '../../../services/api'
-import { type MessageResponse } from '@force/shared/web/api'
+import { type MessageResponse } from '../../../shared/api/types'
 
 export interface Configuracao {
   chave: string
