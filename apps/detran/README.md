@@ -66,6 +66,21 @@ Front ── POST /detran/consultar (1 veículo)  ou  POST /detran/processar-lot
 | GET | `/consultas/:id/multas` | multas de uma consulta |
 | GET | `/pdf/:id` · `/multas/:id/pdf` | PDF da consulta / de uma multa |
 | POST | `/exportar` | ZIP de multas |
+| POST | `/relatorio-pdf` | Relatório A4 em PDF conforme a configuração enviada |
+| POST | `/relatorio-pdf/previa` | Contagens (veículos, multas, valor) do que o PDF conteria |
+
+## Relatório em PDF
+
+Exportação configurável, disponível na tabela de consultas (botão **Relatório PDF**) e na aba **Relatórios** (**Exportar PDF**, respeitando o filtro de contratos).
+
+- **Contrato** (front e back): `src/shared/relatorioContrato.ts`; validação Zod em `src/main/domains/detran/relatorio/relatorioSchema.ts`.
+- **Seleção**: `IDS` (veículos marcados, qualquer página; máx. 5000) ou `FILTRO` (busca, status e contratos resolvidos no servidor — "todos os N filtrados").
+- **Escopo**: todos os selecionados · só com multas ativas · com pendências gerais (multa, IPVA ou licenciamento em débito).
+- **Seções**: resumo consolidado, multas detalhadas, IPVA, licenciamento (ao menos uma).
+- **Organização**: por veículo (bloco com subtotal) ou lista única; ordenação de veículos (placa, valor, nº de multas, contrato) e de multas (vencimento, valor, infração recente). O DETRAN não informa gravidade, então não há ordenação por ela.
+- **Geração**: view model puro (`relatorioModelo.ts`) → template Handlebars (`relatorioTemplate.ts`) → Puppeteer (`page.pdf`, A4, rodapé "Página X de Y"). Logo e fonte Inter são embutidas a partir de `public/`.
+- **Limite conhecido**: IPVA e licenciamento mostram apenas a situação (o scraper não guarda valores deles).
+- Testes: `relatorio/relatorio.test.ts`.
 
 ## Tabelas
 

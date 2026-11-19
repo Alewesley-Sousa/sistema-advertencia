@@ -18,6 +18,9 @@ import { parseParamId, parsePaginationParams } from '../../../shared/utils/reque
 import { detranRepository } from '../repositories/detranRepository'
 import { consultarEPersistir, processarFilaLote } from '../services/detranService'
 import { normalizarIdentificador, sanitizarNome } from '../utils'
+import { validarConfigRelatorio } from '../relatorio/relatorioSchema'
+import { calcularPrevia } from '../relatorio/relatorioModelo'
+import { gerarRelatorioPdf as gerarPdfRelatorio } from '../relatorio/relatorioPdfService'
 
 /* ============================================================================
  * SETUP
@@ -429,5 +432,41 @@ export async function exportarMultasDetran(
     console.error('[DETRAN Export] Erro ao exportar:', error)
     if (!res.headersSent) next(error)
     else res.end()
+  }
+}
+
+/* ============================================================================
+ * RELATÓRIO PDF
+ * ==========================================================================*/
+
+function validarOuFalhar(body: unknown) {
+  const r = validarConfigRelatorio(body)
+  if (!r.ok) throw new AppError(r.mensagem, 400, 'RELATORIO_INVALIDO')
+  return r.config
+}
+
+/** POST /api/detran/relatorio-pdf — devolve o PDF A4 configurado. */
+export async function gerarRelatorioPdf(req: Request, res: Response, next: NextFunction) {
+  try {
+    const config = validarOuFalhar(req.body)
+    const pdf = await gerarPdfRelatorio(config)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="${pdf.nomeArquivo}"`)
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition')
+    res.setHeader('Content-Length', String(pdf.buffer.length))
+    res.end(pdf.buffer)
+  } catch (error) {
+    next(error)
+  }
+}
+
+/** POST /api/detran/relatorio-pdf/previa — contagens do que entraria no PDF. */
+export async function previaRelatorioPdf(req: Request, res: Response, next: NextFunction) {
+  try {
+    const config = validarOuFalhar(req.body)
+    const { veiculos, multas } = detranRepository.listarVeiculosParaRelatorio(config.selecao)
+    sendResponse.success(res, calcularPrevia(config, veiculos, multas))
+  } catch (error) {
+    next(error)
   }
 }

@@ -1,6 +1,7 @@
 // apps/detran/src/renderer/features/detran/services/detran.ts
 
 import { api } from '../../../services/api'
+import type { RelatorioPdfConfig, RelatorioPrevia } from '../../../../shared/relatorioContrato'
 import { type BaseFiltros, type MessageResponse, type Pagination } from '../../../shared/api/types'
 
 export type DetranStatus = 'PENDENTE' | 'PROCESSANDO' | 'QUITADO' | 'COM_DEBITO' | 'ERRO'
@@ -227,6 +228,50 @@ export async function exportarMultasDetran(ids?: number[]): Promise<void> {
     }
     throw err
   }
+}
+
+/* ==========================================================================
+ * Relatório PDF
+ * ========================================================================*/
+
+async function mensagemDeErroBlob(err: any, padrao: string): Promise<Error> {
+  const dados = err?.response?.data
+  if (dados instanceof Blob) {
+    try {
+      const json = JSON.parse(await dados.text())
+      const e: any = new Error(json?.error?.message || json?.message || padrao)
+      e.code = json?.error?.code
+      e.status = err.response.status
+      return e
+    } catch {
+      /* corpo não era JSON */
+    }
+  }
+  return err instanceof Error ? err : new Error(padrao)
+}
+
+/** Gera o relatório PDF configurado e dispara o download. Retorna o nome do arquivo. */
+export async function gerarRelatorioPdfDetran(config: RelatorioPdfConfig): Promise<string> {
+  try {
+    const response = await api.post('/detran/relatorio-pdf', config, { responseType: 'blob' })
+    const nome = extrairNomeArquivo(
+      response.headers as Record<string, any>,
+      `relatorio_detran_${new Date().toISOString().slice(0, 10)}.pdf`
+    )
+    dispararDownload(response.data as Blob, nome)
+    return nome
+  } catch (err) {
+    throw await mensagemDeErroBlob(err, 'Erro ao gerar o relatório em PDF.')
+  }
+}
+
+/** Contagens do que entraria no PDF com a configuração atual (sem gerar o arquivo). */
+export async function previaRelatorioPdfDetran(
+  config: RelatorioPdfConfig,
+  signal?: AbortSignal
+): Promise<RelatorioPrevia> {
+  const response = await api.post('/detran/relatorio-pdf/previa', config, { signal })
+  return response.data as RelatorioPrevia
 }
 
 /* ==========================================================================

@@ -4,7 +4,7 @@
 
 import { db } from '../../../database/db'
 import type { MultaDetran, SituacaoDebitosVeiculo } from '../types'
-import { chaveMulta } from '../utils'
+import { chaveMulta, mesDaInfracao, mesesEntre, valorDetranEmCentavos } from '../utils'
 
 /* ============================================================================
  * TIPOS
@@ -42,45 +42,48 @@ export interface SalvarMultasResult {
   atualizadas: number
 }
 
-function valorDetranEmCentavos(valor: string | null | undefined): number {
-  const limpo = String(valor ?? '').replace(/[^\d,.-]/g, '')
-  if (!limpo) return 0
 
-  const normalizado = limpo.includes(',')
-    ? limpo.replace(/\./g, '').replace(',', '.')
-    : limpo
-  const numero = Number(normalizado)
 
-  return Number.isFinite(numero) ? Math.round(numero * 100) : 0
+
+/** Veículo + situação, como lido do banco para o relatório em PDF. */
+export interface VeiculoRelatorioRecord {
+  id: number
+  placa: string
+  chassi: string
+  modelo: string | null
+  contrato: string | null
+  statusConsulta: string
+  ipvaStatus: string | null
+  licenciamentoStatus: string | null
+  atualizadoEm: string | null
 }
 
-/** Extrai "AAAA-MM" de datas do Detran (dd/mm/aaaa [hh:mm]) ou ISO (aaaa-mm-dd). */
-function mesDaInfracao(data: string | null | undefined): string | null {
-  const texto = String(data ?? '').trim()
-  const br = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)
-  const iso = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
-  const ano = br ? br[3] : iso?.[1]
-  const mes = Number(br ? br[2] : iso?.[2])
-
-  if (!ano || !Number.isInteger(mes) || mes < 1 || mes > 12) return null
-  return `${ano}-${String(mes).padStart(2, '0')}`
+/** Multa ativa de um veículo, como lida do banco para o relatório em PDF. */
+export interface MultaRelatorioRecord {
+  consultaId: number
+  id: number
+  ait: string
+  dataInfracao: string
+  dataVencimento: string | null
+  motivo: string | null
+  valor: string | null
+  valorPagar: string | null
+  caminhoPdf: string | null
+  erroEmissao: string | null
 }
 
-/** Lista todos os meses "AAAA-MM" entre início e fim, inclusive. */
-function mesesEntre(inicio: string, fim: string): string[] {
-  const meses: string[] = []
-  let [ano, mes] = inicio.split('-').map(Number)
-  const [anoFim, mesFim] = fim.split('-').map(Number)
+/** Filtros aceitos por `listarVeiculosParaRelatorio` (já validados). */
+export type SelecaoRelatorioRepo =
+  | { modo: 'IDS'; ids: number[] }
+  | { modo: 'FILTRO'; busca?: string; status?: string; contratos?: string[] }
 
-  while (ano < anoFim || (ano === anoFim && mes <= mesFim)) {
-    meses.push(`${ano}-${String(mes).padStart(2, '0')}`)
-    mes++
-    if (mes > 12) {
-      mes = 1
-      ano++
-    }
-  }
-  return meses
+/** Tamanho do lote de ids por consulta (limite de variáveis do SQLite). */
+const LOTE_IDS_SQL = 500
+
+function emLotes<T>(itens: T[], tamanho: number): T[][] {
+  const lotes: T[][] = []
+  for (let i = 0; i < itens.length; i += tamanho) lotes.push(itens.slice(i, i + tamanho))
+  return lotes
 }
 
 const FILTRO_SEM_CONTRATO = '__SEM_CONTRATO__'
@@ -966,7 +969,106 @@ export const detranRepository = {
       AND m.ativa = 1
     ORDER BY c.placa ASC, m.data_infracao DESC, m.id DESC
   `).all(...params) as any
-  }
+  },
+
+  /* ========================================================================
+   * RELATÓRIO EM PDF
+   * ======================================================================*/
+
+  /**
+   * Veículos (consultas) e multas ativas para o relatório em PDF.
+   *
+   * - `IDS`: exatamente as consultas informadas;
+   * - `FILTRO`: mesmos critérios da tabela (`busca`, `status`) + contratos da
+   *   aba Relatórios, aplicados sobre todo o histórico (sem paginação).
+   */
+  listarVeiculosParaRelatorio(selecao: SelecaoRelatorioRepo): {
+    veiculos: VeiculoRelatorioRecord[]
+    multas: MultaRelatorioRecord[]
+  } {
+    const colunas = `
+      c.id,
+      c.placa,
+      c.chassi,
+      c.modelo,
+      c.contrato,
+      c.status_consulta        AS statusConsulta,
+      c.ipva_status            AS ipvaStatus,
+      c.licenciamento_status   AS licenciamentoStatus,
+      c.updated_at             AS atualizadoEm
+    `
+
+    let veiculos: VeiculoRelatorioRecord[] = []
+
+    if (selecao.modo === 'IDS') {
+      const ids = Array.from(new Set(selecao.ids))
+      for (const lote of emLotes(ids, LOTE_IDS_SQL)) {
+        const linhas = db
+          .prepare(
+            `SELECT ${colunas} FROM infracoes_detran c
+             WHERE c.id IN (${lote.map(() => '?').join(',')})`
+          )
+          .all(...lote) as VeiculoRelatorioRecord[]
+        veiculos.push(...linhas)
+      }
+    } else {
+      const condicoes: string[] = []
+      const params: any[] = []
+
+      if (selecao.busca) {
+        condicoes.push('(c.placa LIKE ? OR c.chassi LIKE ?)')
+        params.push(`%${selecao.busca}%`, `%${selecao.busca}%`)
+      }
+
+      if (selecao.status) {
+        if (selecao.status === 'COM_DEBITOS') {
+          condicoes.push("(c.ipva_status = 'DEBITO' OR c.licenciamento_status = 'DEBITO')")
+        } else {
+          condicoes.push('c.status_consulta = ?')
+          params.push(selecao.status)
+        }
+      }
+
+      if (selecao.contratos?.length) {
+        const filtro = montarFiltroContratos(selecao.contratos)
+        // `montarFiltroContratos` devolve "WHERE (...)": reaproveitamos só a condição.
+        condicoes.push(filtro.sql.replace(/^WHERE\s+/, ''))
+        params.push(...filtro.params)
+      }
+
+      veiculos = db
+        .prepare(
+          `SELECT ${colunas} FROM infracoes_detran c
+           ${condicoes.length ? `WHERE ${condicoes.join(' AND ')}` : ''}`
+        )
+        .all(...params) as VeiculoRelatorioRecord[]
+    }
+
+    const multas: MultaRelatorioRecord[] = []
+    for (const lote of emLotes(veiculos.map((v) => v.id), LOTE_IDS_SQL)) {
+      const linhas = db
+        .prepare(
+          `SELECT
+             m.detran_consulta_id AS consultaId,
+             m.id,
+             m.ait,
+             m.data_infracao      AS dataInfracao,
+             m.data_vencimento    AS dataVencimento,
+             m.motivo,
+             m.valor,
+             m.valor_pagar        AS valorPagar,
+             m.caminho_pdf        AS caminhoPdf,
+             m.erro_emissao       AS erroEmissao
+           FROM infracoes_detran_multas m
+           WHERE m.ativa = 1
+             AND m.detran_consulta_id IN (${lote.map(() => '?').join(',')})`
+        )
+        .all(...lote) as MultaRelatorioRecord[]
+      multas.push(...linhas)
+    }
+
+    return { veiculos, multas }
+  },
 
 }
 

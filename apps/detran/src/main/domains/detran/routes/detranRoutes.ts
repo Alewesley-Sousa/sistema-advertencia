@@ -10,6 +10,8 @@ import {
   listarMultasDaConsulta,
   statusLoteDetran,
   exportarMultasDetran,
+  gerarRelatorioPdf,
+  previaRelatorioPdf,
 } from '../controllers/infracaoDetranController'
 
 export const detranRoutes = Router()
@@ -31,3 +33,6 @@ detranRoutes.get('/multas/:id/pdf', baixarPdfMultaDetran)
 detranRoutes.get('/lotes/:id/status', statusLoteDetran)
 
 detranRoutes.post('/exportar', exportarMultasDetran)
+
+detranRoutes.post('/relatorio-pdf', gerarRelatorioPdf)
+detranRoutes.post('/relatorio-pdf/previa', previaRelatorioPdf)

@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/pages/ConsultaDetranPage.tsx
 
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, CheckSquare, Download, FileBarChart2, Loader2, X } from 'lucide-react'
+import { ArrowLeft, CheckSquare, Download, FileBarChart2, FileText, Loader2, X } from 'lucide-react'
 
 import { PageHeader } from '../shared/layout/PageHeader'
 import { Pagination } from '../shared/ui/Pagination'
@@ -13,6 +13,10 @@ import { LoteUploadModal } from '../features/detran/components/LoteUploadModal'
 import { DetranTable, podeExportar  } from '../features/detran/components/DetranTable'
 import { DetranMultasDrawer } from '../features/detran/components/DetranMultasDrawer'
 import { DetranProgressModal } from '../features/detran/components/DetranProgressModal'
+import {
+  RelatorioPdfDrawer,
+  type OpcaoSelecaoRelatorio,
+} from '../features/detran/components/RelatorioPdfDrawer'
 import { DetranHistoricoFilters } from '../features/detran/components/DetranHistoricoFilters'
 const DetranRelatorios = lazy(() =>
   import('../features/detran/components/DetranRelatorios').then((modulo) => ({
@@ -35,6 +39,7 @@ export function ConsultaDetranPage() {
   const [exportandoId, setExportandoId] = useState<number | null>(null)
   const [modoSelecao, setModoSelecao] = useState(false)
   const [mostrarRelatorios, setMostrarRelatorios] = useState(false)
+  const [relatorioPdfAberto, setRelatorioPdfAberto] = useState(false)
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const ultimoIndexRef = useRef<number | null>(null)
@@ -154,6 +159,33 @@ const handleToggleTodos = (marcar: boolean) => {
 
   const temSelecao = selecionados.size > 0
   const totalSelecionado = selecionados.size
+
+  /* ─────────────────────────────────────────────────────────
+     Relatório PDF — opções de seleção oferecidas no painel
+  ───────────────────────────────────────────────────────── */
+  const totalFiltrado = meta?.totalItems ?? 0
+  const opcoesRelatorio: OpcaoSelecaoRelatorio[] = []
+  if (selecionados.size > 0) {
+    opcoesRelatorio.push({
+      id: 'selecionados',
+      rotulo: `Somente os ${selecionados.size} selecionado${selecionados.size === 1 ? '' : 's'}`,
+      descricao: 'Os veículos marcados na tabela, inclusive de outras páginas.',
+      selecao: { modo: 'IDS', ids: Array.from(selecionados) },
+    })
+  }
+  opcoesRelatorio.push({
+    id: 'filtrados',
+    rotulo: `Todos os ${totalFiltrado} da lista atual`,
+    descricao:
+      busca || filtroStatus !== 'TODOS'
+        ? 'Todos os veículos que atendem à busca e ao filtro aplicados, em todas as páginas.'
+        : 'Todos os veículos consultados, em todas as páginas.',
+    selecao: {
+      modo: 'FILTRO',
+      busca: busca || undefined,
+      status: filtroStatus === 'TODOS' ? undefined : filtroStatus,
+    },
+  })
 
   /* ─────────────────────────────────────────────────────────
      Handlers existentes
@@ -392,6 +424,26 @@ const handleToggleTodos = (marcar: boolean) => {
 
                   <button
                     type="button"
+                    onClick={() => setRelatorioPdfAberto(true)}
+                    disabled={!temSelecao}
+                    className="
+                      inline-flex items-center gap-2
+                      px-3.5 py-2 rounded-md
+                      text-[12px] font-semibold
+                      border border-slate-200 dark:border-petrol-700
+                      bg-white dark:bg-petrol-900
+                      text-slate-700 dark:text-petrol-100
+                      hover:bg-slate-50 dark:hover:bg-petrol-800
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      cursor-pointer transition-colors
+                    "
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Relatório PDF
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleExportarSelecionadas}
                     disabled={exportando || !temSelecao}
                     className="
@@ -434,6 +486,25 @@ const handleToggleTodos = (marcar: boolean) => {
                   >
                     <CheckSquare className="w-3.5 h-3.5" />
                     Selecionar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRelatorioPdfAberto(true)}
+                    
+                    className="
+                      inline-flex items-center gap-2
+                      px-3.5 py-2 rounded-md
+                      text-[12px] font-semibold
+                      border border-slate-200 dark:border-petrol-700
+                      bg-white dark:bg-petrol-900
+                      text-slate-700 dark:text-petrol-100
+                      hover:bg-slate-50 dark:hover:bg-petrol-800
+                        cursor-pointer transition-colors
+                    "
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Relatório PDF
                   </button>
 
                   <button
@@ -526,6 +597,7 @@ const handleToggleTodos = (marcar: boolean) => {
             selecionados={selecionados}
             onToggleSelecao={handleToggleSelecao}
             onToggleTodos={handleToggleTodos}
+            selecionavel={(item) => item.id != null}
           />
 
           {meta && meta.totalPages > 1 && (
@@ -559,6 +631,13 @@ const handleToggleTodos = (marcar: boolean) => {
         placa={placaSelecionada}
         multas={multas}
         carregando={carregandoMultas}
+      />
+
+      <RelatorioPdfDrawer
+        aberto={relatorioPdfAberto}
+        onFechar={() => setRelatorioPdfAberto(false)}
+        origem="TABELA"
+        opcoesSelecao={opcoesRelatorio}
       />
 
       <DetranProgressModal

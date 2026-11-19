@@ -83,6 +83,8 @@ interface DetranTableProps {
   onToggleSelecao?: (index: number, shiftKey: boolean) => void
   /** Marca/desmarca todos os itens elegíveis da página atual */
   onToggleTodos?: (selecionar: boolean) => void
+  /** Quais linhas aceitam seleção. Padrão: só as que têm boleto para exportar. */
+  selecionavel?: (item: InfracaoDetran) => boolean
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -359,6 +361,7 @@ export function DetranTable({
   selecionados,
   onToggleSelecao,
   onToggleTodos,
+  selecionavel = podeExportar,
 }: DetranTableProps) {
   const lista = Array.isArray(consultas) ? consultas : []
   const selecionadosSet = selecionados ?? new Set<number>()
@@ -366,7 +369,7 @@ export function DetranTable({
 
   // Só contam pro header os itens que podem ser exportados
   const idsElegiveis = lista
-    .filter(podeExportar)
+    .filter(selecionavel)
     .map((c) => c.id)
     .filter((id): id is number => typeof id === 'number')
 
@@ -392,7 +395,7 @@ export function DetranTable({
                 ariaLabel="Selecionar todos os exportáveis desta página"
                 title={
                   semElegiveis
-                    ? 'Nenhuma consulta desta página tem boleto para exportar'
+                    ? 'Nenhuma consulta desta página pode ser selecionada'
                     : undefined
                 }
                 onClick={() => onToggleTodos?.(!todosSelecionados)}
@@ -433,7 +436,7 @@ export function DetranTable({
           lista.map((item, index) => {
             const status = item.statusConsulta
             const selecionado = item.id != null && selecionadosSet.has(item.id)
-            const elegivel = podeExportar(item)
+            const elegivel = selecionavel(item)
 
             return (
               <TableRow
@@ -453,12 +456,12 @@ export function DetranTable({
                       ariaLabel={
                         elegivel
                           ? `Selecionar consulta ${item.placa}`
-                          : `${item.placa} não tem boleto para exportar`
+                          : `${item.placa} não pode ser selecionada`
                       }
                       title={
                         elegivel
                           ? 'Clique para selecionar · Shift+clique para intervalo'
-                          : 'Sem boletos disponíveis para exportar'
+                          : 'Esta consulta não pode ser selecionada'
                       }
                       onClick={(e) => onToggleSelecao?.(index, e.shiftKey)}
                     />

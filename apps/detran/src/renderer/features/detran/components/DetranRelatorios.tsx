@@ -27,6 +27,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts'
+import { RelatorioPdfDrawer } from './RelatorioPdfDrawer'
 import {
     buscarRelatoriosDetran,
     type RelatoriosDetran as RelatoriosDetranData,
@@ -54,6 +55,7 @@ export function DetranRelatorios() {
     const [paginaMultas, setPaginaMultas] = useState(1)
     const [contratosSelecionados, setContratosSelecionados] = useState<string[]>([])
     const [filtroContratosAberto, setFiltroContratosAberto] = useState(false)
+    const [relatorioPdfAberto, setRelatorioPdfAberto] = useState(false)
     const filtroContratosRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -228,6 +230,15 @@ export function DetranRelatorios() {
                     >
                         <RefreshCw className={`h-3.5 w-3.5 ${carregando ? 'animate-spin' : ''}`} />
                         Atualizar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setRelatorioPdfAberto(true)}
+                        disabled={carregando || !dados}
+                        className="inline-flex h-9 items-center gap-2 rounded-md border border-petrol-600 bg-petrol-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-petrol-700 disabled:opacity-50 dark:border-petrol-500 dark:bg-petrol-500 dark:hover:bg-petrol-600"
+                    >
+                        <FileText className="h-3.5 w-3.5" />
+                        Exportar PDF
                     </button>
                 </div>
             </div>
@@ -530,6 +541,29 @@ export function DetranRelatorios() {
                     Não há dados para exibir.
                 </div>
             )}
+
+            <RelatorioPdfDrawer
+                aberto={relatorioPdfAberto}
+                onFechar={() => setRelatorioPdfAberto(false)}
+                origem="RELATORIOS"
+                opcoesSelecao={[
+                    {
+                        id: 'contratos',
+                        rotulo:
+                            contratosSelecionados.length === 0
+                                ? 'Toda a frota consultada'
+                                : `${contratosSelecionados.length} contrato(s) selecionado(s)`,
+                        descricao:
+                            contratosSelecionados.length === 0
+                                ? 'Todos os veículos consultados, de todos os contratos.'
+                                : 'Veículos dos contratos escolhidos no filtro desta aba.',
+                        selecao: {
+                            modo: 'FILTRO',
+                            contratos: contratosSelecionados.length ? contratosSelecionados : undefined,
+                        },
+                    },
+                ]}
+            />
         </section>
     )
 }
