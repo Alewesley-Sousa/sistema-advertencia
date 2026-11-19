@@ -1,0 +1,25 @@
+{
+  "name": "@force/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Código compartilhado entre os apps (server: erros/http/logger/respostas; web: UI kit, tema, cliente HTTP). Não contém regra de negócio de nenhum app.",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./web": "./src/web/index.ts",
+    "./web/api": "./src/web/api/index.ts",
+    "./web/assets/*": "./src/web/assets/*"
+  },
+  "dependencies": {
+    "axios": "^1.20.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.46.0",
+    "react-hot-toast": "^2.6.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "peerDependencies": {
+    "express": "^5.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}

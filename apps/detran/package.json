@@ -1,0 +1,41 @@
+{
+  "name": "@force/detran",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:ui": "vite",
+    "dev:node": "tsx watch src/main/index.ts",
+    "dev": "concurrently --raw -k \"npm run dev:node\" \"npm run dev:ui\"",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.server.json && tsc -p tsconfig.app.json",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@force/shared": "*",
+    "archiver": "^7.0.1",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "lucide-react": "^1.46.0",
+    "puppeteer": "^25.11.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0"
+  }
+}
