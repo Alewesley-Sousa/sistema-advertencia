@@ -30,12 +30,8 @@
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
-<<<<<<< Updated upstream
     "xlsx": "^0.18.5",
     "zod": "^4.6.5"
-=======
-    "xlsx": "file:vendor/xlsx.tgz"
->>>>>>> Stashed changes
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
