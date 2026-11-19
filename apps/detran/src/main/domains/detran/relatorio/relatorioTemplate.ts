@@ -107,8 +107,6 @@ ${CSS}
 {{#each porContrato}}<tr><td>{{contrato}}</td><td class="n">{{veiculos}}</td><td class="n">{{multas}}</td><td class="n mono">{{valor}}</td></tr>{{/each}}
 </tbody>
 </table>
-
-{{/if}}
 {{/if}}
 
 {{#if porVeiculo}}

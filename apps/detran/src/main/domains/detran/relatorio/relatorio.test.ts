@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import { CONFIG_PADRAO_RELATORIO, type RelatorioPdfConfig } from '../../../../shared/relatorioContrato'
 import type { MultaRelatorioRecord, VeiculoRelatorioRecord } from '../repositories/detranRepository'
+import { TEMPLATE_RELATORIO } from './relatorioTemplate'
 import { calcularPrevia, dataEmMs, formatarDataBr, montarRelatorio } from './relatorioModelo'
 import { validarConfigRelatorio } from './relatorioSchema'
 
@@ -169,5 +170,17 @@ describe('schema', () => {
       secoes: { resumoConsolidado: false, multasDetalhadas: false, ipva: false, licenciamento: false },
     })
     assert.equal(r.ok, false)
+  })
+})
+
+describe('template Handlebars', () => {
+  it('blocos {{#if}}/{{#each}} estão balanceados (o Handlebars real recusa o contrário)', () => {
+    const pilha: string[] = []
+    for (const m of TEMPLATE_RELATORIO.matchAll(/\{\{(#if|#each|\/if|\/each)[^}]*\}\}/g)) {
+      const tag = m[1]
+      if (tag.startsWith('#')) pilha.push(tag.slice(1))
+      else assert.equal(pilha.pop(), tag.slice(1), `fechamento ${tag} sem abertura correspondente`)
+    }
+    assert.deepEqual(pilha, [])
   })
 })
