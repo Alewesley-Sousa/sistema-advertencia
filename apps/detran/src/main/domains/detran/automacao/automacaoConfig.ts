@@ -52,6 +52,8 @@ const envSchema = z.object({
   EMAIL_CC: lista('EMAIL_CC'),
   /** Destinatário(s) dos avisos de falha. Padrão: os mesmos de EMAIL_TO. */
   EMAIL_ALERTA: lista('EMAIL_ALERTA'),
+  /** Logo/GIF embutidos (CID). Padrão desligado: alguns provedores os mostram como anexo. */
+  EMAIL_IMAGENS: booleano,
 })
 
 export interface ConfigAutomacao {
@@ -60,7 +62,7 @@ export interface ConfigAutomacao {
   timezone: string
   concorrencia: 1 | 2
   smtp: { host: string; port: number; secure: boolean; user: string; pass: string }
-  email: { from: string; to: string[]; cc: string[]; alerta: string[] }
+  email: { from: string; to: string[]; cc: string[]; alerta: string[]; embutirImagens: boolean }
 }
 
 export class ErroConfigAutomacao extends Error {
@@ -113,6 +115,7 @@ export function carregarConfigAutomacao(env: NodeJS.ProcessEnv = process.env): C
       to: c.EMAIL_TO,
       cc: c.EMAIL_CC,
       alerta: c.EMAIL_ALERTA.length ? c.EMAIL_ALERTA : c.EMAIL_TO,
+      embutirImagens: c.EMAIL_IMAGENS,
     },
   }
 }

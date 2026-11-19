@@ -75,7 +75,7 @@ function mensagemSegura(err: unknown): string {
 
 async function enviarAlertaFalha(config: ConfigAutomacao, dataTexto: string, motivo: string): Promise<boolean> {
   try {
-    const mail = montarEmailFalha({ dataTexto, motivo, temLogo: !!lerImagensEmail().logo })
+    const mail = montarEmailFalha({ dataTexto, motivo, temLogo: config.email.embutirImagens && !!lerImagensEmail().logo })
     await enviarEmail(config, {
       assunto: mail.assunto,
       html: mail.html,
@@ -165,8 +165,8 @@ async function gerarPdfEEnviar(
     multasAtivas: previa.multasAtivas,
     valorTotal: brl.format(previa.valorTotalMultas),
     consultasComErro: comErro,
-    temLogo: !!imagens.logo,
-    temGif: !!imagens.gif,
+    temLogo: config.email.embutirImagens && !!imagens.logo,
+    temGif: config.email.embutirImagens && !!imagens.gif,
   }
   const mail = montarEmailRelatorio(dados)
 

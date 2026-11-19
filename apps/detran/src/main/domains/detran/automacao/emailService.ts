@@ -72,7 +72,7 @@ function erroDefinitivo(err: any): boolean {
 
 export async function enviarEmail(config: ConfigAutomacao, envio: EnvioEmail): Promise<void> {
   const transporte = criarTransporte(config)
-  const imagens = envio.embutirImagens ? lerImagensEmail() : { logo: null, gif: null }
+  const imagens = envio.embutirImagens && config.email.embutirImagens ? lerImagensEmail() : { logo: null, gif: null }
 
   const attachments: any[] = (envio.anexos ?? []).map((a) => ({
     filename: a.filename,

@@ -45,7 +45,7 @@ function kpi(rotulo: string, valor: string): string {
 function moldura(conteudo: string, d: { temLogo: boolean; temGif: boolean; preheader: string }): string {
   const logo = d.temLogo
     ? `<img src="cid:${CID_LOGO}" width="56" alt="FORCE" style="display:block;border:0;height:auto;max-width:56px;">`
-    : `<span style="font:700 20px Arial,Helvetica,sans-serif;color:${AZUL};">FORCE</span>`
+    : `<span style="font:800 24px Arial,Helvetica,sans-serif;letter-spacing:.14em;color:${AZUL};">FORCE</span><span style="font:600 11px Arial,Helvetica,sans-serif;letter-spacing:.08em;color:${MUTED};text-transform:uppercase;"> &nbsp;Logística Especializada</span>`
   const gif = d.temGif
     ? `<tr><td style="padding:0;"><img src="cid:${CID_GIF}" width="600" alt="Relatório semanal de multas e débitos" style="display:block;border:0;width:100%;max-width:600px;height:auto;"></td></tr>`
     : ''
