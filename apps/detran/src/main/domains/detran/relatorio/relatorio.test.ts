@@ -131,15 +131,21 @@ describe('período das multas (semana)', () => {
     assert.match(r.veiculos[0].subtotalValor, /300,00/)
     assert.equal(r.periodoTexto, '14/11/2026 a 19/11/2026')
   })
-  it('o resumo considera só as multas da semana; veículos analisados continua geral', () => {
+  it('KPIs: linha 1 é o total geral, linha 2 é só a semana', () => {
     const r = montarRelatorio(cfg({ periodoMultas: periodo }), V, MP, hoje)
-    const k = (rotulo: string) => r.kpisPrincipais.find((x) => x.rotulo === rotulo)!.valor
-    assert.equal(k('Total de veículos analisados'), '3')
-    assert.equal(k('Veículos com multas'), '1')
-    assert.equal(k('Multas da semana'), '2')
-    assert.match(k('Valor das multas'), /300,00/)
+    const l1 = (rotulo: string) => r.kpisPrincipais.find((x) => x.rotulo === rotulo)!.valor
+    const l2 = (rotulo: string) => r.kpisSecundarios.find((x) => x.rotulo === rotulo)!.valor
+    assert.deepEqual(r.kpisPrincipais.map((k) => k.rotulo), ['Total de veículos com multas', 'Valor total a pagar', 'Licenciamento em débito', 'IPVA em débito'])
+    assert.deepEqual(r.kpisSecundarios.map((k) => k.rotulo), ['Veículos com multas', 'Valor a pagar da semana', 'Total de multas', 'Boletos disponíveis'])
+    assert.equal(l1('Total de veículos com multas'), '3') // os 3 veículos têm multas ativas (qualquer data)
+    assert.match(r.kpisPrincipais[0].detalhe, /0 sem multas · 3 analisados/)
+    assert.match(l1('Valor total a pagar'), /420,00/) // 100+200+50+70, todas as multas ativas
+    assert.equal(l2('Veículos com multas'), '1')
+    assert.match(l2('Valor a pagar da semana'), /300,00/) // só S1 + S2
+    assert.equal(l2('Total de multas'), '2')
+    assert.equal(r.tituloLinhaPrincipal, 'Total geral')
+    assert.match(r.tituloLinhaSecundaria, /^Semana · 14\/11\/2026 a 19\/11\/2026$/)
     assert.equal(r.porContrato.length, 1)
-    assert.equal(r.porContrato[0].multas, 2)
   })
   it('a prévia (usada no e-mail) também respeita o período', () => {
     const p = calcularPrevia(cfg({ periodoMultas: periodo }), V, MP)

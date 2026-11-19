@@ -25,7 +25,8 @@ h2.secao { font-size: 12pt; margin: 18px 0 8px; padding-bottom: 4px; border-bott
 .kpi .r { font-size: 7.5pt; color: #5b6b7c; text-transform: uppercase; letter-spacing: .03em; }
 .kpi .v { font-size: 14pt; font-weight: 700; color: #1B426C; margin: 2px 0; }
 .kpi .d { font-size: 7.5pt; color: #7a8896; }
-.kpis.sec .v { font-size: 11pt; }
+.linha { font-size: 7.5pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1B426C; margin: 10px 0 6px; display: flex; align-items: center; gap: 8px; break-after: avoid; }
+.linha::after { content: ''; flex: 1; height: 1px; background: #dde5ee; }
 table { width: 100%; border-collapse: collapse; }
 thead { display: table-header-group; }
 tr { break-inside: avoid; }
@@ -93,10 +94,11 @@ ${CSS}
 
 {{#if mostrarResumo}}
 <h2 class="secao">Resumo consolidado</h2>
-{{#if temPeriodo}}<div class="nota" style="margin:-4px 0 8px;">Multas, valores e contratos referem-se às infrações de {{periodoTexto}}. O total de veículos analisados e a situação de IPVA e licenciamento consideram toda a frota selecionada.</div>{{/if}}
+{{#if tituloLinhaPrincipal}}<div class="linha">{{tituloLinhaPrincipal}}</div>{{/if}}
 <div class="kpis">
 {{#each kpisPrincipais}}<div class="kpi"><div class="r">{{rotulo}}</div><div class="v">{{valor}}</div><div class="d">{{detalhe}}</div></div>{{/each}}
 </div>
+{{#if tituloLinhaSecundaria}}<div class="linha">{{tituloLinhaSecundaria}}</div>{{/if}}
 <div class="kpis sec">
 {{#each kpisSecundarios}}<div class="kpi"><div class="r">{{rotulo}}</div><div class="v">{{valor}}</div><div class="d">{{detalhe}}</div></div>{{/each}}
 </div>

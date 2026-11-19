@@ -103,6 +103,9 @@ export interface RelatorioView {
   kpisPrincipais: KpiView[]
   kpisSecundarios: KpiView[]
   porContrato: LinhaContratoView[]
+  /** Títulos das duas linhas de KPIs (só no relatório com período; vazios caso contrário). */
+  tituloLinhaPrincipal: string
+  tituloLinhaSecundaria: string
 
   veiculos: VeiculoView[]
   multasLista: MultaView[]
@@ -565,6 +568,60 @@ export function montarRelatorio(
       },
     ]
 
+    /* Com período: linha 1 = total geral da frota; linha 2 = só a semana */
+    if (periodo) {
+      const totalPagarGeral = ordenados.reduce((t, i) => t + i.valorPagarCentavos, 0)
+      const comValorPagarGeral = ordenados.reduce(
+        (t, i) => t + i.multas.filter((m) => String(m.valorPagar ?? '').trim() !== '').length,
+        0
+      )
+      const comMultasGeral = ordenados.filter((i) => i.multas.length > 0).length
+      kpisPrincipais = [
+        {
+          rotulo: 'Total de veículos com multas',
+          valor: inteiro.format(comMultasGeral),
+          detalhe: `${inteiro.format(ordenados.length - comMultasGeral)} sem multas · ${inteiro.format(ordenados.length)} analisados`,
+        },
+        {
+          rotulo: 'Valor total a pagar',
+          valor: formatarMoeda(totalPagarGeral),
+          detalhe: `em ${inteiro.format(comValorPagarGeral)} multa(s) com valor a pagar`,
+        },
+        {
+          rotulo: 'Licenciamento em débito',
+          valor: inteiro.format(licDebito),
+          detalhe: `de ${inteiro.format(ordenados.length)} veículo(s)`,
+        },
+        {
+          rotulo: 'IPVA em débito',
+          valor: inteiro.format(ipvaDebito),
+          detalhe: `de ${inteiro.format(ordenados.length)} veículo(s)`,
+        },
+      ]
+      kpisSecundarios = [
+        {
+          rotulo: 'Veículos com multas',
+          valor: inteiro.format(comMultas),
+          detalhe: `${inteiro.format(ordenados.length - comMultas)} sem multas na semana`,
+        },
+        {
+          rotulo: 'Valor a pagar da semana',
+          valor: formatarMoeda(detPagarCentavos),
+          detalhe: `em ${inteiro.format(comValorPagar)} multa(s) da semana`,
+        },
+        {
+          rotulo: 'Total de multas',
+          valor: inteiro.format(detMultas),
+          detalhe: vencidas > 0 ? `${inteiro.format(vencidas)} com vencimento passado` : 'nenhuma vencida',
+        },
+        {
+          rotulo: 'Boletos disponíveis',
+          valor: inteiro.format(boletos),
+          detalhe: `de ${inteiro.format(detMultas)} multa(s) da semana`,
+        },
+      ]
+    }
+
     /* por contrato */
     const contratos = new Map<string, { veiculos: number; multas: number; centavos: number }>()
     for (const i of detalhe) {
@@ -614,6 +671,8 @@ export function montarRelatorio(
 
     kpisPrincipais,
     kpisSecundarios,
+    tituloLinhaPrincipal: periodo ? 'Total geral' : '',
+    tituloLinhaSecundaria: periodo ? `Semana · ${isoParaBr(periodo.de)} a ${isoParaBr(periodo.ate)}` : '',
     porContrato,
 
     veiculos: porVeiculo ? veiculosView : [],
