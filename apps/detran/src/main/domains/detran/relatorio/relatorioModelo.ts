@@ -520,7 +520,7 @@ export function montarRelatorio(
 
     kpisPrincipais = [
       {
-        rotulo: 'Veículos no relatório',
+        rotulo: 'Total de veículos analisados',
         valor: inteiro.format(ordenados.length),
         detalhe: `${ROTULOS_ESCOPO[config.escopo].titulo.toLowerCase()}`,
       },

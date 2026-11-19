@@ -103,7 +103,7 @@ export function montarEmailRelatorio(d: DadosEmailRelatorio): { assunto: string;
     <tr><td class="px" style="padding:0 24px 16px 24px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
         ${[
-          kpi('Veículos', String(d.totalVeiculos)),
+          kpi('Veículos analisados', String(d.totalVeiculos)),
           kpi('Veículos com multas', String(d.veiculosComMultas)),
           kpi('Multas ativas', String(d.multasAtivas)),
           kpi('Valor total', d.valorTotal),
@@ -121,7 +121,7 @@ export function montarEmailRelatorio(d: DadosEmailRelatorio): { assunto: string;
     'Relatório semanal de multas e débitos — DETRAN-CE',
     `Data: ${d.dataTexto}`,
     '',
-    `Veículos: ${d.totalVeiculos}`,
+    `Veículos analisados: ${d.totalVeiculos}`,
     `Veículos com multas: ${d.veiculosComMultas}`,
     `Multas ativas: ${d.multasAtivas}`,
     `Valor total: ${d.valorTotal}`,
