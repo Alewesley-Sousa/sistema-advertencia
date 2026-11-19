@@ -5,11 +5,7 @@
 // que o template precisa já sai formatado daqui (moeda, datas, rótulos, classes
 // CSS), o que mantém o template Handlebars sem helpers nem lógica.
 
-import {
-  mesDaInfracao,
-  mesesEntre,
-  valorDetranEmCentavos,
-} from '../utils'
+import { valorDetranEmCentavos } from '../utils'
 import type {
   MultaRelatorioRecord,
   VeiculoRelatorioRecord,
@@ -78,14 +74,6 @@ export interface LinhaContratoView {
   valor: string
 }
 
-export interface MesEvolucaoView {
-  rotulo: string
-  qtd: number
-  valor: string
-  /** Largura da barra em % (0–100). */
-  largura: number
-}
-
 export interface LinhaSituacaoView {
   placa: string
   modelo: string
@@ -115,14 +103,17 @@ export interface RelatorioView {
   kpisPrincipais: KpiView[]
   kpisSecundarios: KpiView[]
   porContrato: LinhaContratoView[]
-  evolucao: MesEvolucaoView[]
-  evolucaoSemData: number
 
   veiculos: VeiculoView[]
   multasLista: MultaView[]
   relacaoSituacao: LinhaSituacaoView[]
 
   totalVeiculos: number
+  /** Veículos que aparecem no detalhamento (com período, só os que têm multa nele). */
+  totalVeiculosDetalhe: number
+  temPeriodo: boolean
+  periodoTexto: string
+  semMultasNoPeriodo: boolean
   totalMultas: number
   totalValor: string
   totalValorPagar: string
@@ -172,12 +163,6 @@ export function formatarDataBr(texto: string | null | undefined): string {
   const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}:\d{2}))?/)
   if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}${iso[4] ? ` ${iso[4]}` : ''}`
   return t
-}
-
-function rotuloMes(mes: string): string {
-  const [ano, m] = mes.split('-').map(Number)
-  const nomes = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-  return `${nomes[m - 1]}/${ano}`
 }
 
 function formatarEmissao(agora: Date): string {
@@ -360,6 +345,34 @@ function multaParaView(
 
 const LIMITE_BLOCO_LONGO = 8
 
+const MS_DIA = 86_400_000
+
+function diaIso(iso: string): number {
+  const [a, m, d] = iso.split('-').map(Number)
+  return Math.floor(Date.UTC(a, m - 1, d) / MS_DIA)
+}
+
+function isoParaBr(iso: string): string {
+  const [a, m, d] = iso.split('-')
+  return `${d}/${m}/${a}`
+}
+
+/** Mantém só as multas com data de infração dentro do período (dias inclusivos). */
+function filtrarPeriodo(item: VeiculoComMultas, de: number, ate: number): VeiculoComMultas {
+  const multas = item.multas.filter((m) => {
+    const ms = dataEmMs(m.dataInfracao)
+    if (ms == null) return false
+    const dia = Math.floor(ms / MS_DIA)
+    return dia >= de && dia <= ate
+  })
+  return {
+    veiculo: item.veiculo,
+    multas,
+    valorCentavos: multas.reduce((t, m) => t + valorDetranEmCentavos(m.valor), 0),
+    valorPagarCentavos: multas.reduce((t, m) => t + valorDetranEmCentavos(m.valorPagar), 0),
+  }
+}
+
 /* ==========================================================================
  * Textos de contexto
  * ========================================================================*/
@@ -418,8 +431,19 @@ export function montarRelatorio(
   const porVeiculo = config.agrupamento === 'POR_VEICULO'
   const { secoes } = config
 
+  /* ---- itens do detalhamento: com período, só veículos com multa dentro dele ---- */
+  const periodo = config.periodoMultas
+  const detalhe: VeiculoComMultas[] = periodo
+    ? ordenarVeiculos(
+        ordenados
+          .map((i) => filtrarPeriodo(i, diaIso(periodo.de), diaIso(periodo.ate)))
+          .filter((i) => i.multas.length > 0),
+        config.ordenacaoVeiculos
+      )
+    : ordenados
+
   /* ---- blocos por veículo ---- */
-  const veiculosView: VeiculoView[] = ordenados.map((item) => {
+  const veiculosView: VeiculoView[] = detalhe.map((item) => {
     const multasOrdenadas = ordenarMultas(item.multas, config.ordenacaoMultas)
     return {
       placa: item.veiculo.placa,
@@ -441,8 +465,8 @@ export function montarRelatorio(
   /* ---- lista única (todas as multas, ordenadas globalmente) ---- */
   const multasLista: MultaView[] = []
   if (!porVeiculo) {
-    const porId = new Map(ordenados.map((i) => [i.veiculo.id, i.veiculo]))
-    const todasMultas = ordenados.flatMap((i) => i.multas)
+    const porId = new Map(detalhe.map((i) => [i.veiculo.id, i.veiculo]))
+    const todasMultas = detalhe.flatMap((i) => i.multas)
     for (const m of ordenarMultas(todasMultas, config.ordenacaoMultas)) {
       const v = porId.get(m.consultaId)
       if (v) multasLista.push(multaParaView(m, v, hoje))
@@ -452,7 +476,7 @@ export function montarRelatorio(
   /* ---- relação de situação (lista única) ---- */
   const relacaoSituacao: LinhaSituacaoView[] =
     !porVeiculo && (secoes.ipva || secoes.licenciamento)
-      ? ordenados.map((i) => ({
+      ? detalhe.map((i) => ({
           placa: i.veiculo.placa,
           modelo: i.veiculo.modelo?.trim() || '—',
           contrato: i.veiculo.contrato?.trim() || 'Sem contrato',
@@ -465,13 +489,15 @@ export function montarRelatorio(
   const totalMultas = ordenados.reduce((t, i) => t + i.multas.length, 0)
   const totalCentavos = ordenados.reduce((t, i) => t + i.valorCentavos, 0)
   const totalPagarCentavos = ordenados.reduce((t, i) => t + i.valorPagarCentavos, 0)
+  // Totais do detalhamento (iguais aos acima quando não há período)
+  const detMultas = detalhe.reduce((t, i) => t + i.multas.length, 0)
+  const detCentavos = detalhe.reduce((t, i) => t + i.valorCentavos, 0)
+  const detPagarCentavos = detalhe.reduce((t, i) => t + i.valorPagarCentavos, 0)
 
   /* ---- resumo consolidado ---- */
   let kpisPrincipais: KpiView[] = []
   let kpisSecundarios: KpiView[] = []
   let porContrato: LinhaContratoView[] = []
-  let evolucao: MesEvolucaoView[] = []
-  let evolucaoSemData = 0
 
   if (secoes.resumoConsolidado) {
     const comMultas = ordenados.filter((i) => i.multas.length > 0).length
@@ -499,7 +525,7 @@ export function montarRelatorio(
         detalhe: `${ROTULOS_ESCOPO[config.escopo].titulo.toLowerCase()}`,
       },
       {
-        rotulo: 'Com multas ativas',
+        rotulo: 'Veículos com multas',
         valor: inteiro.format(comMultas),
         detalhe: `${inteiro.format(ordenados.length - comMultas)} sem multas ativas`,
       },
@@ -555,32 +581,6 @@ export function montarRelatorio(
         multas: v.multas,
         valor: formatarMoeda(v.centavos),
       }))
-
-    /* evolução mensal (mês da infração) */
-    const meses = new Map<string, { qtd: number; centavos: number }>()
-    for (const i of ordenados) {
-      for (const m of i.multas) {
-        const mes = mesDaInfracao(m.dataInfracao)
-        if (!mes) {
-          evolucaoSemData++
-          continue
-        }
-        const atual = meses.get(mes) ?? { qtd: 0, centavos: 0 }
-        atual.qtd++
-        atual.centavos += valorDetranEmCentavos(m.valor)
-        meses.set(mes, atual)
-      }
-    }
-    const chaves = Array.from(meses.keys()).sort()
-    if (chaves.length) {
-      const todosMeses = mesesEntre(chaves[0], chaves[chaves.length - 1])
-      const maior = Math.max(...todosMeses.map((mes) => meses.get(mes)?.centavos ?? 0), 0)
-      evolucao = todosMeses.map((mes) => {
-        const v = meses.get(mes) ?? { qtd: 0, centavos: 0 }
-        const largura = maior > 0 && v.centavos > 0 ? Math.max(3, Math.round((v.centavos / maior) * 100)) : 0
-        return { rotulo: rotuloMes(mes), qtd: v.qtd, valor: formatarMoeda(v.centavos), largura }
-      })
-    }
   }
 
   /* ---- textos de contexto ---- */
@@ -613,17 +613,19 @@ export function montarRelatorio(
     kpisPrincipais,
     kpisSecundarios,
     porContrato,
-    evolucao,
-    evolucaoSemData,
 
     veiculos: porVeiculo ? veiculosView : [],
     multasLista: secoes.multasDetalhadas ? multasLista : [],
     relacaoSituacao,
 
     totalVeiculos: ordenados.length,
-    totalMultas,
-    totalValor: formatarMoeda(totalCentavos),
-    totalValorPagar: formatarMoeda(totalPagarCentavos),
+    totalVeiculosDetalhe: detalhe.length,
+    temPeriodo: !!periodo,
+    periodoTexto: periodo ? `${isoParaBr(periodo.de)} a ${isoParaBr(periodo.ate)}` : '',
+    semMultasNoPeriodo: !!periodo && detalhe.length === 0 && ordenados.length > 0,
+    totalMultas: detMultas,
+    totalValor: formatarMoeda(detCentavos),
+    totalValorPagar: formatarMoeda(detPagarCentavos),
     vazio: ordenados.length === 0,
 
     logoDataUri: '',

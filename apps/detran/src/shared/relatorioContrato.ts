@@ -91,6 +91,12 @@ export interface RelatorioPdfConfig {
   titulo?: string
   /** Texto livre exibido no cabeçalho (ex.: contexto da emissão). */
   observacao?: string
+  /**
+   * Restringe o DETALHAMENTO às multas cuja data de infração cai neste período
+   * (datas ISO `aaaa-mm-dd`, inclusivas). Veículos sem multa no período somem do
+   * detalhe; o resumo consolidado continua considerando todas as multas ativas.
+   */
+  periodoMultas?: { de: string; ate: string }
 }
 
 /** Resposta de `POST /detran/relatorio-pdf/previa` — o que o PDF conteria. */

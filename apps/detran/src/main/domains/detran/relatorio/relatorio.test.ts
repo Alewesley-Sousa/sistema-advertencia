@@ -105,11 +105,44 @@ describe('totais e agrupamento', () => {
     assert.equal(r.kpisPrincipais.length, 0)
     assert.equal(r.porContrato.length, 0)
   })
-  it('resumo agrupa por contrato e preenche meses', () => {
+  it('resumo agrupa por contrato e rotula veículos com multas', () => {
     const r = montarRelatorio(cfg(), V, M, hoje)
     assert.ok(r.porContrato.some((c) => c.contrato === 'Sem contrato'))
-    assert.equal(r.evolucao.length, 1)
-    assert.equal(r.evolucao[0].largura, 100)
+    assert.ok(r.kpisPrincipais.some((k) => k.rotulo === 'Veículos com multas'))
+    assert.ok(!('evolucao' in r))
+  })
+})
+
+describe('período das multas (semana)', () => {
+  const MP = [
+    multa(1, 'S1', '100,00', '01/08/2026', { dataInfracao: '14/11/2026' }), // sábado
+    multa(1, 'S2', '200,00', '01/08/2026', { dataInfracao: '19/11/2026' }), // sexta (limite)
+    multa(2, 'S3', '50,00', '01/08/2026', { dataInfracao: '13/11/2026' }), // fora (sexta anterior)
+    multa(3, 'S4', '70,00', '01/08/2026', { dataInfracao: '20/11/2026' }), // depois do período
+  ]
+  const periodo = { de: '2026-11-14', ate: '2026-11-19' }
+  it('detalha só multas do período e some veículos sem multa nele', () => {
+    const r = montarRelatorio(cfg({ periodoMultas: periodo }), V, MP, hoje)
+    assert.deepEqual(r.veiculos.map((v) => v.placa), ['BBB2B22'])
+    assert.deepEqual(r.veiculos[0].multas.map((m) => m.ait).sort(), ['S1', 'S2'])
+    assert.equal(r.totalVeiculosDetalhe, 1)
+    assert.match(r.totalValor, /300,00/)
+    assert.match(r.veiculos[0].subtotalValor, /300,00/)
+    assert.equal(r.periodoTexto, '14/11/2026 a 19/11/2026')
+  })
+  it('o resumo continua com todas as multas ativas', () => {
+    const r = montarRelatorio(cfg({ periodoMultas: periodo }), V, MP, hoje)
+    assert.equal(r.kpisPrincipais.find((k) => k.rotulo === 'Multas ativas')!.valor, '4')
+  })
+  it('sem multas no período marca semMultasNoPeriodo', () => {
+    const r = montarRelatorio(cfg({ periodoMultas: { de: '2026-01-01', ate: '2026-01-07' } }), V, MP, hoje)
+    assert.equal(r.semMultasNoPeriodo, true)
+    assert.equal(r.veiculos.length, 0)
+  })
+  it('schema valida o período', () => {
+    const ok = validarConfigRelatorio({ origem: 'AUTOMACAO', selecao: { modo: 'FILTRO' }, periodoMultas: periodo })
+    assert.equal(ok.ok, true)
+    assert.equal(validarConfigRelatorio({ origem: 'AUTOMACAO', selecao: { modo: 'FILTRO' }, periodoMultas: { de: '2026-11-19', ate: '2026-11-14' } }).ok, false)
   })
 })
 

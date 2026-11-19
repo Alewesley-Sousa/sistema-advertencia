@@ -51,6 +51,11 @@ tbody tr:nth-child(even) td { background: #fafcfe; }
 .veiculo header .sub { font-size: 8pt; color: #5b6b7c; }
 .veiculo .chips { display: flex; gap: 6px; flex-wrap: wrap; font-size: 7.5pt; color: #5b6b7c; align-items: center; }
 .veiculo .sem { padding: 8px 10px; color: #7a8896; font-style: italic; }
+.veiculo table { table-layout: fixed; }
+.veiculo th:nth-child(1) { width: 14%; }
+.veiculo th:nth-child(3), .veiculo th:nth-child(4) { width: 12%; }
+.veiculo th:nth-child(5), .veiculo th:nth-child(6) { width: 11%; }
+.veiculo th:nth-child(7) { width: 12%; }
 .veiculo tfoot td { font-weight: 700; color: #1B426C; background: #f4f7fa; border-top: 1px solid #c9d6e3; }
 .total { margin-top: 10px; padding: 8px 12px; border: 1px solid #1B426C; border-radius: 6px; display: flex; justify-content: space-between; font-weight: 700; color: #1B426C; break-inside: avoid; }
 .vazio { text-align: center; padding: 40px 0; color: #5b6b7c; border: 1px dashed #c9d6e3; border-radius: 6px; }
@@ -78,6 +83,7 @@ ${CSS}
   <div><b>Seleção:</b> {{selecaoTexto}}</div>
   <div><b>Escopo e organização:</b> {{escopoTexto}}</div>
   <div><b>Ordenação:</b> {{ordenacaoTexto}}</div>
+  {{#if temPeriodo}}<div><b>Multas detalhadas:</b> infrações de {{periodoTexto}}</div>{{/if}}
 </div>
 {{#if observacao}}<div class="obs">{{observacao}}</div>{{/if}}
 
@@ -102,20 +108,12 @@ ${CSS}
 </tbody>
 </table>
 
-{{#if evolucao}}
-<h2 class="secao">Evolução mensal das infrações</h2>
-<table>
-<thead><tr><th style="width:70px">Mês</th><th>Valor no mês</th><th class="n" style="width:50px">Multas</th><th class="n" style="width:90px">Valor</th></tr></thead>
-<tbody>
-{{#each evolucao}}<tr><td>{{rotulo}}</td><td><div class="barra"><i style="width: {{largura}}%"></i></div></td><td class="n">{{qtd}}</td><td class="n mono">{{valor}}</td></tr>{{/each}}
-</tbody>
-</table>
-{{#if evolucaoSemData}}<div class="nota">{{evolucaoSemData}} multa(s) sem data de infração legível não entram neste quadro.</div>{{/if}}
 {{/if}}
 {{/if}}
 
 {{#if porVeiculo}}
-<h2 class="secao">Detalhamento por veículo</h2>
+<h2 class="secao">{{#if temPeriodo}}Multas da semana ({{periodoTexto}}){{else}}Detalhamento por veículo{{/if}}</h2>
+{{#if semMultasNoPeriodo}}<div class="vazio">Nenhuma multa com infração neste período.</div>{{/if}}
 {{#each veiculos}}
 <section class="{{classeBloco}}">
   <header>
@@ -143,7 +141,8 @@ ${CSS}
 
 {{#if listaUnica}}
 {{#if mostrarMultas}}
-<h2 class="secao">Multas ativas</h2>
+<h2 class="secao">{{#if temPeriodo}}Multas da semana ({{periodoTexto}}){{else}}Multas ativas{{/if}}</h2>
+{{#if semMultasNoPeriodo}}<div class="vazio">Nenhuma multa com infração neste período.</div>{{/if}}
 <table>
 <thead><tr><th>Placa</th><th>Contrato</th><th>AIT</th><th>Motivo</th><th>Infração</th><th>Vencimento</th><th class="n">Valor</th><th class="n">A pagar</th></tr></thead>
 <tbody>
@@ -163,7 +162,7 @@ ${CSS}
 {{/if}}
 
 {{#if mostrarMultas}}
-<div class="total"><span>Total — {{totalVeiculos}} veículo(s), {{totalMultas}} multa(s) ativa(s)</span><span>Valor {{totalValor}} · A pagar {{totalValorPagar}}</span></div>
+<div class="total"><span>Total — {{totalVeiculosDetalhe}} veículo(s), {{totalMultas}} multa(s)</span><span>Valor {{totalValor}} · A pagar {{totalValorPagar}}</span></div>
 {{/if}}
 {{/if}}
 </body>

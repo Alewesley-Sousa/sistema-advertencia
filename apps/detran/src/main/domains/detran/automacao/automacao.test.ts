@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto'
 import { carregarChaves, cifrar, decifrar, ErroCofre, gerarChaveBase64 } from './cofre'
 import { validarListaVeiculos } from './veiculosSchema'
 import { carregarConfigAutomacao, ErroConfigAutomacao, mascararEmail, mascararPlaca } from './automacaoConfig'
+import { periodoDaSemana } from './periodoSemana'
 import { escaparHtml, montarEmailFalha, montarEmailRelatorio } from './emailTemplate'
 
 const chaves = () => carregarChaves({ DETRAN_COFRE_CHAVE: gerarChaveBase64() } as any)
@@ -128,5 +129,21 @@ describe('e-mail', () => {
     const m = montarEmailFalha({ dataTexto: 'x', motivo: '<script>alert(1)</script>', temLogo: false })
     assert.ok(!m.html.includes('<script>'))
     assert.equal(escaparHtml('<&>'), '&lt;&amp;&gt;')
+  })
+})
+
+describe('período da semana', () => {
+  const tz = 'America/Fortaleza'
+  it('sexta: sábado anterior até a própria sexta', () => {
+    assert.deepEqual(periodoDaSemana(tz, new Date('2026-11-19T10:00:00Z')), { de: '2026-11-14', ate: '2026-11-19' })
+  })
+  it('quarta: sábado mais recente até hoje', () => {
+    assert.deepEqual(periodoDaSemana(tz, new Date('2026-11-18T15:00:00Z')), { de: '2026-11-14', ate: '2026-11-18' })
+  })
+  it('sábado: usa o sábado da semana anterior', () => {
+    assert.deepEqual(periodoDaSemana(tz, new Date('2026-11-21T15:00:00Z')), { de: '2026-11-14', ate: '2026-11-21' })
+  })
+  it('respeita o fuso (madrugada UTC ainda é o dia anterior em Fortaleza)', () => {
+    assert.deepEqual(periodoDaSemana(tz, new Date('2026-11-20T01:00:00Z')), { de: '2026-11-14', ate: '2026-11-19' })
   })
 })

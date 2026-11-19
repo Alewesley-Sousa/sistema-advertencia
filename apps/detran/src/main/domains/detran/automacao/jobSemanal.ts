@@ -17,6 +17,7 @@ import { CONFIG_PADRAO_RELATORIO, type RelatorioPdfConfig } from '../../../../sh
 
 import { automacaoRepository, type OrigemExecucao, type StatusExecucao } from './automacaoRepository'
 import type { ConfigAutomacao } from './automacaoConfig'
+import { periodoDaSemana } from './periodoSemana'
 import { carregarVeiculos } from './veiculosCofreService'
 import { enviarEmail, lerImagensEmail } from './emailService'
 import { montarEmailFalha, montarEmailRelatorio, type DadosEmailRelatorio } from './emailTemplate'
@@ -141,6 +142,8 @@ async function gerarPdfEEnviar(
     selecao: { modo: 'IDS', ids },
     ordenacaoVeiculos: 'VALOR_DESC',
     titulo: 'Relatório semanal de multas e débitos',
+    // Detalhamento só com as multas da semana (sábado → hoje), sem veículos sem multa
+    periodoMultas: periodoDaSemana(config.timezone),
   }
 
   let pdf

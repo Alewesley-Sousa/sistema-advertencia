@@ -104,7 +104,7 @@ export function montarEmailRelatorio(d: DadosEmailRelatorio): { assunto: string;
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
         ${[
           kpi('Veículos', String(d.totalVeiculos)),
-          kpi('Com multas', String(d.veiculosComMultas)),
+          kpi('Veículos com multas', String(d.veiculosComMultas)),
           kpi('Multas ativas', String(d.multasAtivas)),
           kpi('Valor total', d.valorTotal),
         ]
@@ -122,7 +122,7 @@ export function montarEmailRelatorio(d: DadosEmailRelatorio): { assunto: string;
     `Data: ${d.dataTexto}`,
     '',
     `Veículos: ${d.totalVeiculos}`,
-    `Com multas ativas: ${d.veiculosComMultas}`,
+    `Veículos com multas: ${d.veiculosComMultas}`,
     `Multas ativas: ${d.multasAtivas}`,
     `Valor total: ${d.valorTotal}`,
     d.consultasComErro > 0 ? `\nAtenção: ${d.consultasComErro} veículo(s) não puderam ser consultados nesta rodada.` : '',

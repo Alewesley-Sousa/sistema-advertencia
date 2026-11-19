@@ -19,6 +19,8 @@ export const MAX_IDS_RELATORIO = 5000
 
 const texto = (max: number) => z.string().trim().max(max)
 
+const dataIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (use aaaa-mm-dd).')
+
 const selecaoPorIds = z.object({
   modo: z.literal('IDS'),
   ids: z.array(z.number().int().positive()).min(1, 'Selecione ao menos um veículo.').max(MAX_IDS_RELATORIO),
@@ -51,6 +53,10 @@ export const relatorioPdfSchema = z.object({
   ordenacaoMultas: z.enum(ORDENACOES_MULTAS).default(CONFIG_PADRAO_RELATORIO.ordenacaoMultas),
   titulo: texto(120).optional(),
   observacao: texto(500).optional(),
+  periodoMultas: z
+    .object({ de: dataIso, ate: dataIso })
+    .refine((p) => p.de <= p.ate, { message: 'O período das multas está invertido.' })
+    .optional(),
 })
 
 /** Garante, em tempo de compilação, que o schema produz exatamente o contrato compartilhado. */
