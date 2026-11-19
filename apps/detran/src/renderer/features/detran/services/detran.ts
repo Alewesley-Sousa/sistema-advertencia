@@ -295,6 +295,13 @@ export interface StatusAutomacao {
   cron: string | null
   timezone: string | null
   emExecucao: boolean
+  progresso: {
+    fase: 'CARREGANDO' | 'CONSULTANDO' | 'GERANDO_PDF' | 'ENVIANDO_EMAIL'
+    processados: number
+    total: number
+    percentual: number
+    reenvio: boolean
+  } | null
   cofre: { existe: boolean; total: number; atualizadoEm: string | null }
   execucoes: ExecucaoAutomacao[]
 }
@@ -317,6 +324,11 @@ export async function removerVeiculosAutomacao(): Promise<void> {
 
 export async function executarAutomacaoAgora(): Promise<void> {
   await api.post('/detran/automacao/executar')
+}
+
+/** Reenvia o e-mail com os dados já consultados (sem nova busca no DETRAN). */
+export async function reenviarEmailAutomacao(): Promise<void> {
+  await api.post('/detran/automacao/reenviar')
 }
 
 /* ==========================================================================

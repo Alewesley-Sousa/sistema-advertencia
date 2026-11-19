@@ -71,6 +71,7 @@ Front ── POST /detran/consultar (1 veículo)  ou  POST /detran/processar-lot
 | PUT | `/automacao/veiculos` | Importa/substitui a lista (guardada cifrada) |
 | DELETE | `/automacao/veiculos` | Remove a lista guardada |
 | POST | `/automacao/executar` | Dispara a rotina semanal agora (202) |
+| POST | `/automacao/reenviar` | Reenvia o e-mail com os dados já consultados, sem nova busca (202) |
 | POST | `/relatorio-pdf/previa` | Contagens (veículos, multas, valor) do que o PDF conteria |
 
 ## Relatório em PDF

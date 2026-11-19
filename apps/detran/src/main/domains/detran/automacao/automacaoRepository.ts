@@ -43,6 +43,14 @@ export const automacaoRepository = {
     db.prepare(`DELETE FROM automacao_cofre WHERE id = 1`).run()
   },
 
+  /** Quantos itens do lote já foram processados (para a barra de progresso). */
+  lerProcessadosLote(loteId: number): number {
+    const row = db.prepare(`SELECT processados FROM lotes_consultas WHERE id = ?`).get(loteId) as
+      | { processados: number }
+      | undefined
+    return row?.processados ?? 0
+  },
+
   iniciarExecucao(origem: OrigemExecucao, totalVeiculos: number): number {
     const r = db
       .prepare(`INSERT INTO automacao_execucoes (origem, status, total_veiculos) VALUES (?, 'EXECUTANDO', ?)`)

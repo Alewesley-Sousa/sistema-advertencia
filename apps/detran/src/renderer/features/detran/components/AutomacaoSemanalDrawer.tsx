@@ -5,7 +5,7 @@
 // chassi ou e-mail volta do servidor — só contagens.
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { CalendarClock, Loader2, Lock, Play, Trash2, Upload, X } from 'lucide-react'
+import { CalendarClock, Loader2, Lock, Mail, Play, Trash2, Upload, X } from 'lucide-react'
 import { Drawer } from '../../../shared/ui/Drawer'
 import { showToast } from '../../../shared/ui/Toast'
 import { lerPlanilhaVeiculos } from '../lib/lerPlanilhaVeiculos'
@@ -13,6 +13,7 @@ import {
   buscarStatusAutomacao,
   executarAutomacaoAgora,
   importarVeiculosAutomacao,
+  reenviarEmailAutomacao,
   removerVeiculosAutomacao,
   type ExecucaoAutomacao,
   type StatusAutomacao,
@@ -24,6 +25,13 @@ const ROTULO_STATUS: Record<ExecucaoAutomacao['status'], { texto: string; classe
   PARCIAL: { texto: 'Parcial', classe: 'bg-amber-50 text-amber-800 border-amber-200' },
   FALHA: { texto: 'Falha', classe: 'bg-rose-50 text-rose-800 border-rose-200' },
 }
+
+const ROTULO_FASE = {
+  CARREGANDO: 'Preparando…',
+  CONSULTANDO: 'Consultando o DETRAN-CE',
+  GERANDO_PDF: 'Gerando o PDF',
+  ENVIANDO_EMAIL: 'Enviando o e-mail',
+} as const
 
 const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
 
@@ -59,10 +67,10 @@ export function AutomacaoSemanalDrawer({ aberto, onFechar }: { aberto: boolean; 
     carregar()
   }, [aberto, carregar])
 
-  // Enquanto há execução em andamento, atualiza a cada 5 s.
+  // Enquanto há execução em andamento, atualiza a cada 2 s.
   useEffect(() => {
     if (!aberto || !status?.emExecucao) return
-    const t = window.setInterval(carregar, 5000)
+    const t = window.setInterval(carregar, 2000)
     return () => window.clearInterval(t)
   }, [aberto, status?.emExecucao, carregar])
 
@@ -99,6 +107,19 @@ export function AutomacaoSemanalDrawer({ aberto, onFechar }: { aberto: boolean; 
       await carregar()
     } catch (err: any) {
       showToast.error(err?.message || 'Não foi possível iniciar a execução.')
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  const handleReenviar = async () => {
+    setOcupado(true)
+    try {
+      await reenviarEmailAutomacao()
+      showToast.success('Reenvio iniciado, sem nova consulta ao DETRAN.')
+      await carregar()
+    } catch (err: any) {
+      showToast.error(err?.message || 'Não foi possível reenviar o e-mail.')
     } finally {
       setOcupado(false)
     }
@@ -177,10 +198,33 @@ export function AutomacaoSemanalDrawer({ aberto, onFechar }: { aberto: boolean; 
 
         <section className="space-y-2">
           <span className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-petrol-300/70">Execução</span>
-          <button type="button" disabled={!podeExecutar} onClick={handleExecutar} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12px] font-semibold border border-slate-200 dark:border-petrol-700 bg-white dark:bg-petrol-900 hover:bg-slate-50 dark:hover:bg-petrol-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors">
-            {status?.emExecucao ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            {status?.emExecucao ? 'Executando…' : 'Executar agora'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" disabled={!podeExecutar} onClick={handleExecutar} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12px] font-semibold border border-slate-200 dark:border-petrol-700 bg-white dark:bg-petrol-900 hover:bg-slate-50 dark:hover:bg-petrol-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors">
+              {status?.emExecucao && !status.progresso?.reenvio ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              {status?.emExecucao && !status.progresso?.reenvio ? 'Executando…' : 'Executar agora'}
+            </button>
+            <button type="button" disabled={!podeExecutar} onClick={handleReenviar} title="Usa os dados já consultados; não acessa o DETRAN de novo." className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12px] font-semibold border border-slate-200 dark:border-petrol-700 bg-white dark:bg-petrol-900 hover:bg-slate-50 dark:hover:bg-petrol-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors">
+              {status?.emExecucao && status.progresso?.reenvio ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+              {status?.emExecucao && status.progresso?.reenvio ? 'Reenviando…' : 'Reenviar e-mail'}
+            </button>
+          </div>
+          <p className="text-[11.5px] text-slate-500 dark:text-petrol-300/80">
+            “Reenviar e-mail” gera o PDF com os dados da última consulta e envia de novo, sem buscar no DETRAN.
+          </p>
+          {status?.emExecucao && status.progresso && (
+            <div className="space-y-1" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={status.progresso.percentual}>
+              <div className="flex items-center justify-between text-[11.5px] text-slate-600 dark:text-petrol-200">
+                <span>
+                  {ROTULO_FASE[status.progresso.fase]}
+                  {status.progresso.fase === 'CONSULTANDO' && ` · ${status.progresso.processados}/${status.progresso.total}`}
+                </span>
+                <span className="font-semibold tabular-nums">{status.progresso.percentual}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-100 dark:bg-petrol-800 overflow-hidden">
+                <div className="h-full rounded-full bg-accent-500 transition-[width] duration-500" style={{ width: `${status.progresso.percentual}%` }} />
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="space-y-2">

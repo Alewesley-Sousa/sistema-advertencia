@@ -18,6 +18,7 @@ import {
   apagarVeiculosAutomacao,
   executarAutomacaoAgora,
   importarVeiculosAutomacao,
+  reenviarEmailAutomacao,
   statusAutomacao,
 } from '../controllers/automacaoController'
 
@@ -48,3 +49,4 @@ detranRoutes.get('/automacao/status', statusAutomacao)
 detranRoutes.put('/automacao/veiculos', importarVeiculosAutomacao)
 detranRoutes.delete('/automacao/veiculos', apagarVeiculosAutomacao)
 detranRoutes.post('/automacao/executar', executarAutomacaoAgora)
+detranRoutes.post('/automacao/reenviar', reenviarEmailAutomacao)

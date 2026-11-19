@@ -9,7 +9,7 @@ import { sendResponse } from '../../../shared/utils/response'
 import { automacaoRepository } from '../automacao/automacaoRepository'
 import { ErroCofre } from '../automacao/cofre'
 import { apagarVeiculos, estadoCofre, importarVeiculos } from '../automacao/veiculosCofreService'
-import { executarRotinaSemanal, rotinaEmExecucao } from '../automacao/jobSemanal'
+import { executarRotinaSemanal, progressoRotina, reenviarRelatorio, rotinaEmExecucao } from '../automacao/jobSemanal'
 import { automacaoAgendada, configAutomacaoAtiva } from '../automacao/scheduler'
 
 export function statusAutomacao(_req: Request, res: Response, next: NextFunction) {
@@ -20,6 +20,7 @@ export function statusAutomacao(_req: Request, res: Response, next: NextFunction
       cron: config?.cron ?? null,
       timezone: config?.timezone ?? null,
       emExecucao: rotinaEmExecucao(),
+      progresso: progressoRotina(),
       cofre: estadoCofre(),
       execucoes: automacaoRepository.listarExecucoes(10),
     })
@@ -71,4 +72,22 @@ export function executarAutomacaoAgora(_req: Request, res: Response) {
     console.error('[Automação] Rodada manual falhou:', e?.message)
   )
   return sendResponse.success(res, { message: 'Execução iniciada. Acompanhe pelo histórico.' }, 202)
+}
+
+export function reenviarEmailAutomacao(_req: Request, res: Response) {
+  const config = configAutomacaoAtiva()
+  if (!config) {
+    return sendResponse.error(
+      res,
+      'Automação desligada ou com configuração inválida (veja o log do servidor).',
+      409,
+      'AUTOMACAO_INATIVA'
+    )
+  }
+  if (rotinaEmExecucao()) {
+    return sendResponse.error(res, 'Já existe uma execução em andamento.', 409, 'AUTOMACAO_EM_ANDAMENTO')
+  }
+
+  reenviarRelatorio(config).catch((e: any) => console.error('[Automação] Reenvio falhou:', e?.message))
+  return sendResponse.success(res, { message: 'Reenvio iniciado (sem nova consulta ao DETRAN).' }, 202)
 }
