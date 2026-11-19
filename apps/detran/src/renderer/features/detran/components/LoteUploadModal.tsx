@@ -80,29 +80,29 @@ const LOTE_SCOPE_STYLES = `
 
 .dark .lote-scope {
   /* Hero: sobe pra petrol-800 pra se destacar do modal petrol-900 */
-  --lote-hero-bg:      #0B3542;
-  --lote-hero-bg-2:    #082732;
+  --lote-hero-bg:      #102A46;
+  --lote-hero-bg-2:    #0B1D32;
   --lote-hero-text:    #ffffff;
   --lote-hero-text-2:  rgba(147, 191, 200, 0.9);
 
   /* Superfície tintada: petrol-800/60 sobre petrol-900 */
-  --lote-soft-bg:      #0B3542;
-  --lote-line:         #0B3542;
-  --lote-line-soft:    #082732;
-  --lote-ink:          #93BFC8;
-  --lote-muted:        #93BFC8;
+  --lote-soft-bg:      #102A46;
+  --lote-line:         #102A46;
+  --lote-line-soft:    #0B1D32;
+  --lote-ink:          #A3BDDB;
+  --lote-muted:        #A3BDDB;
 
   /* Acento: petrol-400 — mais claro pra brilhar no escuro */
-  --lote-accent:       #5A98A5;
-  --lote-accent-ring:  rgba(90, 152, 165, 0.15);
-  --lote-accent-glow:  rgba(90, 152, 165, 0.35);
-  --lote-accent-halo:  #2E7A8A;
+  --lote-accent:       #6E96C4;
+  --lote-accent-ring:  rgba(110, 150, 196, 0.15);
+  --lote-accent-glow:  rgba(110, 150, 196, 0.35);
+  --lote-accent-halo:  #3A6DA6;
 
   /* Dropzone: fundo recuado (petrol-950) sobre modal (petrol-900) */
-  --lote-drop-bg:      #041821;
-  --lote-drop-bg-hover:#082732;
-  --lote-drop-bg-active:#0B3542;
-  --lote-drop-halo:    #0B3542;
+  --lote-drop-bg:      #071422;
+  --lote-drop-bg-hover:#0B1D32;
+  --lote-drop-bg-active:#102A46;
+  --lote-drop-halo:    #102A46;
 }
 `
 
@@ -534,7 +534,7 @@ export function LoteUploadModal({
                       }`,
                       boxShadow: arrastando
                         ? `0 6px 18px var(--lote-accent-glow)`
-                        : '0 4px 14px rgba(15,76,92,0.07)',
+                        : '0 4px 14px rgba(27, 66, 108,0.07)',
                       transform: arrastando ? 'scale(1.05)' : 'scale(1)',
                     }}
                   >

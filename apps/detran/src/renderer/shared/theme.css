@@ -56,18 +56,43 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* ── Primária · Petroleum Blue ──────────────────────────────── */
-  --color-petrol-50:  #F0F6F7;
-  --color-petrol-100: #E8F1F3;
-  --color-petrol-200: #C6DDE2;
-  --color-petrol-300: #93BFC8;
-  --color-petrol-400: #5A98A5;
-  --color-petrol-500: #2E7A8A;
-  --color-petrol-600: #0F4C5C;  /* ← tom principal */
-  --color-petrol-700: #0D4150;
-  --color-petrol-800: #0B3542;
-  --color-petrol-900: #082732;
-  --color-petrol-950: #041821;
+  /* ── Primária · Marinho FORCE (mantém o nome petrol: zero mudança nos componentes) ── */
+  --color-petrol-50:  #F4F7FB;
+  --color-petrol-100: #E8EFF7;
+  --color-petrol-200: #CFDDED;
+  --color-petrol-300: #A3BDDB;
+  --color-petrol-400: #6E96C4;
+  --color-petrol-500: #3A6DA6;
+  --color-petrol-600: #1B426C;  /* ← cor da logo */
+  --color-petrol-700: #16365A;
+  --color-petrol-800: #102A46;
+  --color-petrol-900: #0B1D32;
+  --color-petrol-950: #071422;
+
+  /* ── Acento · Ciano FORCE (só linha, ponto, foco, progresso) ── */
+  --color-accent-50:  #EBFAFF;
+  --color-accent-100: #D1F4FF;
+  --color-accent-200: #A4E8FE;
+  --color-accent-300: #6ED9FC;
+  --color-accent-400: #37CAFB;
+  --color-accent-500: #2CCDFC;  /* ← cor da logo */
+  --color-accent-600: #06A2DB;
+  --color-accent-700: #0079A8;  /* texto/ícone de acento em fundo claro */
+  --color-accent-800: #005D85;
+  --color-accent-900: #004466;
+
+  /* ── Neutros frios (subtom 212°) ── */
+  --color-ink-25:  #FAFBFC;
+  --color-ink-50:  #F5F7FA;
+  --color-ink-100: #ECEFF4;
+  --color-ink-200: #DDE3E9;
+  --color-ink-300: #C3CBD5;
+  --color-ink-400: #919DAC;
+  --color-ink-500: #667485;
+  --color-ink-600: #4D5B6A;
+  --color-ink-700: #364454;
+  --color-ink-800: #202D3C;
+  --color-ink-900: #121E2B;
 
   /* ── Acento · Signal Amber ──────────────────────────────────── */
   --color-signal-50:  #FFFBEB;
@@ -81,40 +106,49 @@
   --color-signal-800: #92400E;
   --color-signal-900: #78350F;
 
-  /* ── Semânticas de status (aliases nomeados) ────────────────── */
-  --color-status-quitado:        #10B981;
-  --color-status-quitado-soft:   #ECFDF5;
-  --color-status-quitado-border: #A7F3D0;
+  /* ── Status de multas: fill / soft / border / text ── */
+  --color-status-quitado:        #0E8F63;
+  --color-status-quitado-soft:   #E7F6EF;
+  --color-status-quitado-border: #A9E0C8;
+  --color-status-quitado-text:   #0A5C40;
 
-  --color-status-pendente:        #F59E0B;
-  --color-status-pendente-soft:   #FFFBEB;
-  --color-status-pendente-border: #FDE68A;
+  --color-status-pendente:        #B7791F;
+  --color-status-pendente-soft:   #FFF6E0;
+  --color-status-pendente-border: #F3D58B;
+  --color-status-pendente-text:   #7A4F0C;
 
-  --color-status-erro:        #F43F5E;
-  --color-status-erro-soft:   #FFF1F2;
-  --color-status-erro-border: #FECDD3;
+  --color-status-erro:        #D13B4E;
+  --color-status-erro-soft:   #FDECEF;
+  --color-status-erro-border: #F4B5BF;
+  --color-status-erro-text:   #9B1C2E;
 
-  --color-status-ignorado:        #94A3B8;
-  --color-status-ignorado-soft:   #F8FAFC;
-  --color-status-ignorado-border: #E2E8F0;
+  --color-status-processando:        #0A7EA4;
+  --color-status-processando-soft:   #E3F6FD;
+  --color-status-processando-border: #9FDDF2;
+  --color-status-processando-text:   #075A78;
 
-  /* ── Ciclo de vida do registro ──────────────────────────────── */
-  --color-lifecycle-registrado: #64748B;
-  --color-lifecycle-gerado:     #2E7A8A;
-  --color-lifecycle-enviado:    #10B981;
-  --color-lifecycle-erro:       #F43F5E;
-  --color-lifecycle-ignorado:   #94A3B8;
+  --color-status-ignorado:        #919DAC;
+  --color-status-ignorado-soft:   #F5F7FA;
+  --color-status-ignorado-border: #DDE3E9;
+  --color-status-ignorado-text:   #4D5B6A;
+
+  /* ── Ciclo de vida do registro ── */
+  --color-lifecycle-registrado: #667485;
+  --color-lifecycle-gerado:     #3A6DA6;
+  --color-lifecycle-enviado:    #0E8F63;
+  --color-lifecycle-erro:       #D13B4E;
+  --color-lifecycle-ignorado:   #919DAC;
 
   /* ── Raios ──────────────────────────────────────────────────── */
   --radius-card:    0.75rem;   /* 12px */
   --radius-control: 0.375rem;  /* 6px  */
 
-  /* ── Sombras institucionais ─────────────────────────────────── */
-  --shadow-card:  0 1px 2px 0 rgba(15, 76, 92, 0.04);
-  --shadow-lift:  0 4px 12px -2px rgba(15, 76, 92, 0.08),
-                  0 2px 4px  -1px rgba(15, 76, 92, 0.04);
-  --shadow-modal: 0 20px 40px -8px rgba(15, 76, 92, 0.18),
-                  0 8px  16px -4px rgba(15, 76, 92, 0.08);
+  /* ── Sombras tintadas de marinho (nunca preto puro) ── */
+  --shadow-card:  0 1px 2px 0 rgba(27, 66, 108, 0.05);
+  --shadow-lift:  0 4px 12px -2px rgba(27, 66, 108, 0.10),
+                  0 2px 4px  -1px rgba(27, 66, 108, 0.05);
+  --shadow-modal: 0 20px 40px -8px rgba(27, 66, 108, 0.22),
+                  0 8px  16px -4px rgba(27, 66, 108, 0.10);
 }
 
 
@@ -133,35 +167,35 @@
 
   body {
     font-family: var(--font-sans);
-    color: #0f172a;              /* slate-900 */
-    background-color: #f8fafc;   /* slate-50  */
+    color: var(--color-ink-900);
+    background-color: var(--color-ink-50);
   }
 
   .dark body {
-    color: #f1f5f9;              /* slate-100 */
-    background-color: #041821;   /* petrol-950 */
+    color: var(--color-petrol-100);
+    background-color: var(--color-petrol-950);
   }
 
   /* Seleção de texto na cor de marca (claro) */
   ::selection {
-    background-color: rgba(15, 76, 92, 0.15);
-    color: #082732;
+    background-color: rgba(27, 66, 108, 0.15);
+    color: #0B1D32;
   }
 
   /* Seleção de texto na cor de marca (escuro) */
   .dark ::selection {
-    background-color: rgba(90, 152, 165, 0.28);
-    color: #F0F6F7;
+    background-color: rgba(44, 205, 252, 0.28);
+    color: #F4F7FB;
   }
 
   /* Focus ring consistente em todo o app */
   *:focus-visible {
-    outline: 2px solid var(--color-petrol-600);
+    outline: 2px solid var(--color-accent-500);
     outline-offset: 2px;
     border-radius: 4px;
   }
   .dark *:focus-visible {
-    outline-color: var(--color-petrol-400);
+    outline-color: var(--color-accent-500);
   }
 
   /* ──────────────────────────────────────────────────────────────
@@ -197,14 +231,14 @@
     height: 10px;
   }
   .dark ::-webkit-scrollbar-track {
-    background: #041821;
+    background: #071422;
   }
   .dark ::-webkit-scrollbar-thumb {
-    background: #0B3542;
+    background: #102A46;
     border-radius: 6px;
   }
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: #0D4150;
+    background: #16365A;
   }
 }
 
@@ -244,11 +278,11 @@
 
 /* Linha selecionada em tabela — indicador petróleo na lateral */
 .row-selected {
-  background: linear-gradient(90deg, rgba(15, 76, 92, 0.06), rgba(15, 76, 92, 0) 42%);
+  background: linear-gradient(90deg, rgba(27, 66, 108, 0.06), rgba(27, 66, 108, 0) 42%);
   box-shadow: inset 3px 0 0 0 var(--color-petrol-600);
 }
 .dark .row-selected {
-  background: linear-gradient(90deg, rgba(90, 152, 165, 0.12), rgba(90, 152, 165, 0) 42%);
+  background: linear-gradient(90deg, rgba(110, 150, 196, 0.12), rgba(110, 150, 196, 0) 42%);
   box-shadow: inset 3px 0 0 0 var(--color-petrol-400);
 }
 
@@ -258,10 +292,10 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #94a3b8; /* slate-400 */
+  color: #919DAC; /* ink-400 */
 }
 .dark .section-label {
-  color: #64748b; /* slate-500 */
+  color: #667485; /* ink-500 */
 }
 
 /* Números mono-alinhados — tabelas e métricas */
@@ -274,19 +308,19 @@
 /* Superfície operacional padrão (card azul-petróleo suave) */
 .surface-operational {
   background-color: var(--color-petrol-100);
-  border: 1px solid rgba(15, 76, 92, 0.15);
+  border: 1px solid rgba(27, 66, 108, 0.15);
   border-radius: var(--radius-card);
 }
 .dark .surface-operational {
   background-color: rgba(11, 53, 66, 0.6);   /* petrol-800/60 */
-  border-color: rgba(90, 152, 165, 0.2);
+  border-color: rgba(110, 150, 196, 0.2);
 }
 
 /* Grid decorativo (hero e seções escuras) */
 .grid-bg {
   background-image:
-    linear-gradient(to right, rgba(15, 76, 92, 0.055) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(15, 76, 92, 0.055) 1px, transparent 1px);
+    linear-gradient(to right, rgba(27, 66, 108, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 66, 108, 0.055) 1px, transparent 1px);
   background-size: 44px 44px;
 }
 .dark .grid-bg {

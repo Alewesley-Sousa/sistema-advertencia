@@ -172,7 +172,7 @@ export function NotFoundPage({ onVoltarHome }: NotFoundPageProps) {
             <button
               type="button"
               onClick={onVoltarHome}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm px-5 py-3 rounded-xl transition shadow-sm active:scale-95 cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-petrol-600 hover:bg-petrol-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition shadow-sm active:scale-95 cursor-pointer"
             >
               <Home className="w-4 h-4" />
               Voltar ao início
@@ -180,7 +180,7 @@ export function NotFoundPage({ onVoltarHome }: NotFoundPageProps) {
           ) : (
             <a
               href="/"
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm px-5 py-3 rounded-xl transition shadow-sm active:scale-95"
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-petrol-600 hover:bg-petrol-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition shadow-sm active:scale-95"
             >
               <Home className="w-4 h-4" />
               Voltar ao início

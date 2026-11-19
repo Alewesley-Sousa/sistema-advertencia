@@ -114,24 +114,24 @@ export function DetranFleetAnimation({
         }
 
         .dark .fleet-svg {
-          --fleet-sky-top:    #0B3542;
-          --fleet-sky-bottom: #082732;
-          --fleet-cloud:      #0D4150;
+          --fleet-sky-top:    #102A46;
+          --fleet-sky-bottom: #0B1D32;
+          --fleet-cloud:      #16365A;
           --fleet-smoke-1:    #64748b;
           --fleet-smoke-2:    #475569;
           --fleet-smoke-3:    #334155;
-          --fleet-road-line:  #0D4150;
-          --fleet-trailer-fill:   #0B3542;
-          --fleet-trailer-stroke: #2E7A8A;
-          --fleet-trailer-seam:   #0D4150;
-          --fleet-chassis:        #041821;
-          --fleet-wheel-outer:    #041821;
+          --fleet-road-line:  #16365A;
+          --fleet-trailer-fill:   #102A46;
+          --fleet-trailer-stroke: #3A6DA6;
+          --fleet-trailer-seam:   #16365A;
+          --fleet-chassis:        #071422;
+          --fleet-wheel-outer:    #071422;
           --fleet-wheel-inner:    #475569;
           --fleet-wheel-hub:      #94a3b8;
           --fleet-exhaust:        #334155;
-          --fleet-exhaust-cap:    #0B3542;
-          --fleet-window:         #5A98A5;
-          --fleet-window-stroke:  #041821;
+          --fleet-exhaust-cap:    #102A46;
+          --fleet-window:         #6E96C4;
+          --fleet-window-stroke:  #071422;
           --fleet-light:          #FBBF24;
           --fleet-flag-pole:      #475569;
           --fleet-flag-done:      #10b981;
