@@ -2,6 +2,8 @@
 
 import 'dotenv/config'
 import express from 'express'
+import fs from 'node:fs'
+import path from 'node:path'
 import cors from 'cors'
 import { errorHandler } from './shared/errors/errorHandler'
 import { initDatabase } from './database/init'
@@ -40,6 +42,20 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api', routes)
+
+/* ═══════════════════════════════════════════════════════════════
+   Interface web (build do Vite em ./dist) — só se `npm run build` foi executado.
+   Em desenvolvimento a interface continua vindo do Vite (porta 3001).
+   ═══════════════════════════════════════════════════════════════ */
+const pastaInterface = path.resolve(process.cwd(), 'dist')
+if (fs.existsSync(path.join(pastaInterface, 'index.html'))) {
+  app.use(express.static(pastaInterface, { index: 'index.html', maxAge: '1h' }))
+  // SPA: qualquer rota que não seja /api devolve o index.html
+  app.get(/^\/(?!api(?:\/|$)).*/, (_req, res) => {
+    res.sendFile(path.join(pastaInterface, 'index.html'))
+  })
+  console.log(`[DETRAN] Interface web servida de ${pastaInterface}`)
+}
 
 /* ═══════════════════════════════════════════════════════════════
    Handler de erro — sempre por último
