@@ -31,14 +31,21 @@ import { gerarRelatorioPdf as gerarPdfRelatorio } from '../relatorio/relatorioPd
  * ==========================================================================*/
 
 const requireCJS = createRequire(import.meta.url)
-const archiver: any = requireCJS('archiver')
+let archiverCache: any = null
 
-if (typeof archiver !== 'function') {
-  throw new Error(
-    `Esperava-se uma função em "archiver", mas veio ${typeof archiver}. ` +
-      `Chaves: [${Object.keys(archiver ?? {}).join(', ')}]. ` +
-      `Confirme que está em archiver@^7.`
-  )
+/** Carregado só quando alguém exporta o ZIP (economia de RAM em repouso). */
+function obterArchiver(): any {
+  if (archiverCache) return archiverCache
+  const archiver: any = requireCJS('archiver')
+  if (typeof archiver !== 'function') {
+    throw new Error(
+      `Esperava-se uma função em "archiver", mas veio ${typeof archiver}. ` +
+        `Chaves: [${Object.keys(archiver ?? {}).join(', ')}]. ` +
+        `Confirme que está em archiver@^7.`
+    )
+  }
+  archiverCache = archiver
+  return archiver
 }
 
 /* ============================================================================
@@ -376,7 +383,7 @@ export async function exportarMultasDetran(
     res.setHeader('Content-Type', 'application/zip')
     res.setHeader('Content-Disposition', `attachment; filename="${nomeZip}"`)
 
-    const archive = archiver('zip', { zlib: { level: 6 } })
+    const archive = obterArchiver()('zip', { zlib: { level: 6 } })
 
     archive.on('warning', (err: unknown) => {
       console.warn('[DETRAN Export] Aviso:', err)

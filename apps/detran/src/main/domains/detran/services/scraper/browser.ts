@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer'
 import type { Browser, Page } from 'puppeteer'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -124,6 +123,9 @@ export async function obterBrowserDetran(): Promise<Browser> {
       log(
         'Iniciando Chromium compartilhado...'
       )
+
+      // Carregado só aqui: o módulo pesa ~40 MB de RAM e o app em repouso nem o precisa.
+      const { default: puppeteer } = await import('puppeteer')
 
       const browser =
         await puppeteer.launch({

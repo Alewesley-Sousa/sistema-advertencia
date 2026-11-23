@@ -5,7 +5,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import nodemailer, { type Transporter } from 'nodemailer'
+import type { Transporter } from 'nodemailer'
 
 import { mascararEmail, type ConfigAutomacao } from './automacaoConfig'
 import { CID_GIF, CID_LOGO } from './emailTemplate'
@@ -50,7 +50,9 @@ export function lerImagensEmail(): { logo: Buffer | null; gif: Buffer | null } {
   }
 }
 
-function criarTransporte(config: ConfigAutomacao): Transporter {
+async function criarTransporte(config: ConfigAutomacao): Promise<Transporter> {
+  // carregado sob demanda (economia de RAM em repouso)
+  const { default: nodemailer } = await import('nodemailer')
   return nodemailer.createTransport({
     host: config.smtp.host,
     port: config.smtp.port,
@@ -71,7 +73,7 @@ function erroDefinitivo(err: any): boolean {
 }
 
 export async function enviarEmail(config: ConfigAutomacao, envio: EnvioEmail): Promise<void> {
-  const transporte = criarTransporte(config)
+  const transporte = await criarTransporte(config)
   const imagens = envio.embutirImagens && config.email.embutirImagens ? lerImagensEmail() : { logo: null, gif: null }
 
   const attachments: any[] = (envio.anexos ?? []).map((a) => ({
