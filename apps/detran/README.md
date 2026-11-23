@@ -2,7 +2,7 @@
 
 Consulta débitos/multas de veículos no portal do DETRAN-CE, baixa os boletos em PDF e mantém um histórico local com relatórios e exportação ZIP.
 
-- API `:3334` · front `:3001` · banco `storage/database.sqlite` (criado ao rodar, dentro desta pasta)
+- API `:3334` · front `:3001` em desenvolvimento (em produção o próprio servidor entrega a interface na `:3334`) · banco `storage/database.sqlite` (criado ao rodar, dentro desta pasta)
 - Não usa Electron/IPC: o front chama a API HTTP local e acompanha o lote por **polling** (`GET /api/detran/lotes/:id/status`).
 
 ## Como rodar (projeto independente)
@@ -17,7 +17,16 @@ npm run dev              # API :3334 + front :3001
 npm run build            # tsc -b && vite build
 npm run typecheck        # tsc (servidor e front)
 npm run lint             # oxlint
-npm run test              # node:test (dom.test.ts, utils.test.ts)
+npm run test              # node:test (scraper, relatório, automação e segurança)
+```
+
+Em produção (servidor):
+
+```bash
+npm install
+npm run build:prod                       # interface em dist/ + servidor compilado em dist-server/
+pm2 start ecosystem.config.cjs && pm2 save
+npm run dispositivos -- listar           # libera os PCs que vão acessar (veja "Segurança de acesso")
 ```
 
 Código reutilizável (UI kit, erros e respostas HTTP, cliente HTTP, tema) está **copiado** em `src/main/shared` e `src/renderer/shared` — não há pacote compartilhado entre os projetos.
@@ -30,7 +39,9 @@ Código reutilizável (UI kit, erros e respostas HTTP, cliente HTTP, tema) está
 | API | Node.js, Express 5 |
 | Banco | SQLite (`better-sqlite3`) |
 | Automação | **Puppeteer** (não Playwright) — `domains/detran/services/scraper/*` |
-| Exportação | `archiver` (ZIP), carregado via `createRequire` no controller |
+| Exportação | `archiver` (ZIP), carregado sob demanda via `createRequire` no controller |
+| E-mail e agenda | Nodemailer (SMTP), node-cron |
+| Segurança e backup | dispositivos aprovados, limite de requisições, backup diário (`src/main/seguranca`) |
 | Código de apoio | cópia local em `src/*/shared` (UI kit, erros, respostas HTTP, cliente HTTP) |
 
 ## Fluxo
@@ -95,7 +106,7 @@ Toda sexta-feira (padrão `0 7 * * 5`, fuso `America/Fortaleza`) o servidor deci
 - **Banco**: só o blob cifrado e a contagem ficam em `automacao_cofre`; o histórico (`automacao_execucoes`) não guarda placas nem e-mails. A API nunca devolve a lista.
 - **Resiliência**: falha em um veículo não derruba a rodada (PDF sai com aviso no e-mail); falha total (cofre ilegível, nenhuma consulta ok, PDF) envia e-mail de alerta; travas impedem duas rodadas ao mesmo tempo; e-mail com 3 tentativas e backoff (erros de autenticação/destinatário não são repetidos).
 - **E-mail**: `emailTemplate.ts` — tabelas + CSS inline, 600 px, logo e GIF opcional embutidos por CID, versão texto. Para o GIF, coloque `public/email/banner.gif` (≤ 1 MB, 600 px de largura; o **1º quadro** deve trazer a mensagem, pois o Outlook desktop não anima). Sem o arquivo, o e-mail sai sem GIF. Use remetente de domínio com SPF/DKIM/DMARC.
-- **Limites conhecidos**: o servidor precisa estar ligado na sexta (não há reposição de execução perdida — use "Executar agora"); o restante do `database.sqlite` (resultados das consultas) **não** é cifrado — proteja a pasta `storage/` com BitLocker/permissões do SO; a chave em `.env` é texto puro no disco, prefira variável de ambiente do sistema em produção; a API local não tem autenticação (não exponha a porta na rede).
+- **Limites conhecidos**: o servidor precisa estar ligado na sexta (não há reposição de execução perdida — use "Executar agora"); o restante do `database.sqlite` (resultados das consultas) **não** é cifrado — proteja a pasta `storage/` com BitLocker/permissões do SO; a chave em `.env` é texto puro no disco, prefira variável de ambiente do sistema em produção; o acesso é controlado por dispositivos aprovados (veja "Segurança de acesso"), mas não há login de usuário; os backups em `storage/backups` também não são cifrados — proteja a pasta como o restante de `storage/`.
 
 ## Tabelas
 
@@ -114,15 +125,15 @@ Toda sexta-feira (padrão `0 7 * * 5`, fuso `America/Fortaleza`) o servidor deci
   `npm run build:prod && pm2 start ecosystem.config.cjs && pm2 save`
 - A cada atualização no servidor: `git pull`, `npm install`, `npm run build:prod`, `pm2 restart detran`.
 
-## Segurança de acesso (túnel) e backup
-- O servidor escuta só em `127.0.0.1` (`HOST`). O túnel deve apontar para `http://127.0.0.1:3334`.
+## Segurança de acesso e backup
+- O servidor escuta só em `127.0.0.1` (`HOST`): por padrão, apenas a própria máquina o alcança. Para liberar a rede interna, defina `HOST=0.0.0.0` no `.env` e libere a porta 3334 no firewall só para a rede da empresa.
 - **Dispositivos aprovados** (ligado por padrão, exceto em `npm run dev`): quem abre o sistema sem aprovação vê uma tela com um código.
   Libere pelo servidor: `npm run dispositivos -- listar`, `aprovar 7F3A-91C2 "PC da Maria"`, `revogar CODIGO`, `remover CODIGO`.
   A identidade é do **navegador** (cookie com token aleatório; o banco guarda só o hash). Outro navegador, janela anônima ou cookies apagados pedem nova aprovação.
   Camada extra opcional: `IPS_PERMITIDOS`.
 - **Limite de requisições** por dispositivo: `RATE_LIMIT_GERAL` (600/min) e `RATE_LIMIT_PESADO` (20/min em consulta, lote, PDF e automação — só POST/PUT/DELETE).
 - Downloads de PDF só servem arquivos dentro de `storage/`.
-- **Histórico da automação** registra quem executou (dispositivo e IP, ou "Agendador").
+- **Histórico da automação** registra quem executou (dispositivo e IP, ou "Agendador"). Atrás de um proxy/túnel, o IP vem de `CF-Connecting-IP` ou `X-Forwarded-For`; sem proxy, é o IP da conexão.
 - **Backup** diário às 02:30 (`BACKUP_CRON`): cópia consistente do banco, verificada, mais os PDFs (`storage/documentos`), retenção de 14 dias (mantém sempre os 3 últimos; PDFs nunca são apagados do backup).
   Manual: `npm run dispositivos -- backup`. Defina `BACKUP_DIR` para **outro disco ou pasta de rede**.
 - Rode o PM2 com um usuário Windows comum (não administrador), com acesso apenas à pasta do app.
