@@ -12,6 +12,58 @@ import { instalarHelpersDom } from './dom'
 let browserDetran: Browser | null = null
 let browserDetranPromise: Promise<Browser> | null = null
 
+/* ============================================================================
+ * FECHAMENTO AUTOMÁTICO POR OCIOSIDADE
+ *
+ * O Chromium é o maior consumidor de RAM do app (várias centenas de MB).
+ * Depois de usado, ele é fechado sozinho quando não há nenhuma aba/contexto
+ * aberto por BROWSER_OCIOSO_MIN minutos (padrão 2; 0 desativa). A próxima
+ * consulta ou PDF abre outro (~1-2 s a mais) — o app em repouso fica leve.
+ * ========================================================================== */
+
+const MIN_OCIOSO = Number(process.env.BROWSER_OCIOSO_MIN ?? 2)
+const OCIOSO_MS = Number.isFinite(MIN_OCIOSO) ? Math.max(0, MIN_OCIOSO) * 60_000 : 120_000
+
+let ultimoUso = Date.now()
+let vigia: NodeJS.Timeout | null = null
+
+function marcarUso(): void {
+  ultimoUso = Date.now()
+}
+
+function iniciarVigia(): void {
+  if (OCIOSO_MS <= 0 || vigia) return
+  const intervalo = Math.min(30_000, Math.max(5_000, Math.floor(OCIOSO_MS / 4)))
+  vigia = setInterval(() => {
+    void verificarOciosidade()
+  }, intervalo)
+  vigia.unref() // o vigia sozinho nunca segura o processo vivo
+}
+
+function pararVigia(): void {
+  if (vigia) clearInterval(vigia)
+  vigia = null
+}
+
+async function verificarOciosidade(): Promise<void> {
+  const browser = browserDetran
+  if (!browser || browserDetranPromise) return
+  try {
+    // contexto padrão + aba inicial em branco = ocioso
+    const emUso =
+      browser.browserContexts().length > 1 || (await browser.pages()).length > 1
+    if (emUso) {
+      marcarUso()
+      return
+    }
+    if (Date.now() - ultimoUso < OCIOSO_MS) return
+    log(`Chromium ocioso há ${Math.round((Date.now() - ultimoUso) / 1000)}s; fechando para liberar RAM.`)
+    await fecharBrowserDetran()
+  } catch (error) {
+    logErr('Falha ao verificar ociosidade do Chromium:', error instanceof Error ? error.message : String(error))
+  }
+}
+
 
 /* ============================================================================
  * CHROME
@@ -58,6 +110,7 @@ export function getChromeExecutablePath():
  * ========================================================================== */
 
 export async function obterBrowserDetran(): Promise<Browser> {
+  marcarUso()
   if (browserDetran) {
     return browserDetran
   }
@@ -80,10 +133,19 @@ export async function obterBrowserDetran(): Promise<Browser> {
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
+            // economia de memória/CPU sem alterar o comportamento das páginas
+            '--disable-gpu',
+            '--disable-dev-shm-usage',
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-component-update',
+            '--mute-audio',
           ],
         })
 
       browserDetran = browser
+      marcarUso()
+      iniciarVigia()
 
       browser.once(
         'disconnected',
@@ -124,6 +186,7 @@ export async function fecharBrowserDetran(): Promise<void> {
     browserDetran
 
   browserDetran = null
+  pararVigia()
 
   if (!browser) {
     return

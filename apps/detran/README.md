@@ -106,3 +106,8 @@ Toda sexta-feira (padrão `0 7 * * 5`, fuso `America/Fortaleza`) o servidor deci
 - **Limpeza manual de multas** (`DELETE /detran/consultas/:id/multas` + botão "Apagar multas"): **não existe**. A implementação final usa inativação (`sincronizarMultasAtivas`), não `removerMultasDaConsulta`.
 - A regra "re-baixar boleto quando o download não for de hoje" (`baixado_em` = hoje) **não está aplicada**: `buscarChavesJaBaixadas` considera qualquer PDF já baixado, sem filtro de data (a coluna `baixado_em` e o índice existem).
 - `apps/detran/src/shared/types.ts` (tipos do plano IPC original) **não é importado por nenhum arquivo**; mantido por não ter sido auditado como descartável.
+
+## Uso de memória em segundo plano
+- O Chromium (scraper e PDF) **fecha sozinho** após `BROWSER_OCIOSO_MIN` minutos sem uso (padrão 2) e reabre quando necessário. Em repouso, só o Node fica na RAM.
+- `ecosystem.config.cjs` sobe o servidor com PM2 em um único processo, com teto de heap e reinício automático se passar de 350 MB:
+  `pm2 start ecosystem.config.cjs && pm2 save`
