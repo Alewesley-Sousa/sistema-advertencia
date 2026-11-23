@@ -109,5 +109,7 @@ Toda sexta-feira (padrão `0 7 * * 5`, fuso `America/Fortaleza`) o servidor deci
 
 ## Uso de memória em segundo plano
 - O Chromium (scraper e PDF) **fecha sozinho** após `BROWSER_OCIOSO_MIN` minutos sem uso (padrão 2) e reabre quando necessário. Em repouso, só o Node fica na RAM.
+- Em produção o servidor roda **compilado** (`npm run build:prod`), em Node puro, sem o `tsx` (~30 MB a menos).
 - `ecosystem.config.cjs` sobe o servidor com PM2 em um único processo, com teto de heap e reinício automático se passar de 350 MB:
-  `pm2 start ecosystem.config.cjs && pm2 save`
+  `npm run build:prod && pm2 start ecosystem.config.cjs && pm2 save`
+- A cada atualização no servidor: `git pull`, `npm install`, `npm run build:prod`, `pm2 restart detran`.

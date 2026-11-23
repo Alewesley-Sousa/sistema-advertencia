@@ -1,13 +1,12 @@
 // PM2 — servidor DETRAN em segundo plano, com baixo consumo de RAM.
-//   pm2 start ecosystem.config.cjs && pm2 save
+//   npm run build:prod && pm2 start ecosystem.config.cjs && pm2 save
+// (build:prod gera a interface em ./dist e o servidor compilado em ./dist-server)
 module.exports = {
   apps: [
     {
       name: 'detran',
-      // Um único processo Node (sem o processo "wrapper" do tsx): menos RAM.
-      script: 'src/main/index.ts',
-      interpreter: 'node',
-      interpreter_args: '--import tsx',
+      // Servidor já compilado: roda em Node puro, sem o tsx (economiza ~30 MB de RAM).
+      script: 'dist-server/index.mjs',
       cwd: __dirname,
       env: {
         NODE_ENV: 'production',

@@ -8,6 +8,9 @@
     "dev:node": "tsx watch src/main/index.ts",
     "dev": "concurrently --raw -k \"npm run dev:node\" \"npm run dev:ui\"",
     "build": "tsc -b && vite build",
+    "build:server": "esbuild src/main/index.ts --bundle --platform=node --format=esm --packages=external --target=node22 --outfile=dist-server/index.mjs",
+    "build:prod": "npm run build && npm run build:server",
+    "start": "node dist-server/index.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.server.json && tsc -p tsconfig.app.json",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
@@ -37,6 +40,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "esbuild": ">=0.25.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/better-sqlite3": "^9.6.0",
     "@types/cors": "^2.8.19",
