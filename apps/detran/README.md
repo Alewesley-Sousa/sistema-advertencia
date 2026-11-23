@@ -113,3 +113,17 @@ Toda sexta-feira (padrão `0 7 * * 5`, fuso `America/Fortaleza`) o servidor deci
 - `ecosystem.config.cjs` sobe o servidor com PM2 em um único processo, com teto de heap e reinício automático se passar de 350 MB:
   `npm run build:prod && pm2 start ecosystem.config.cjs && pm2 save`
 - A cada atualização no servidor: `git pull`, `npm install`, `npm run build:prod`, `pm2 restart detran`.
+
+## Segurança de acesso (túnel) e backup
+- O servidor escuta só em `127.0.0.1` (`HOST`). O túnel deve apontar para `http://127.0.0.1:3334`.
+- **Dispositivos aprovados** (ligado por padrão, exceto em `npm run dev`): quem abre o sistema sem aprovação vê uma tela com um código.
+  Libere pelo servidor: `npm run dispositivos -- listar`, `aprovar 7F3A-91C2 "PC da Maria"`, `revogar CODIGO`, `remover CODIGO`.
+  A identidade é do **navegador** (cookie com token aleatório; o banco guarda só o hash). Outro navegador, janela anônima ou cookies apagados pedem nova aprovação.
+  Camada extra opcional: `IPS_PERMITIDOS`.
+- **Limite de requisições** por dispositivo: `RATE_LIMIT_GERAL` (600/min) e `RATE_LIMIT_PESADO` (20/min em consulta, lote, PDF e automação — só POST/PUT/DELETE).
+- Downloads de PDF só servem arquivos dentro de `storage/`.
+- **Histórico da automação** registra quem executou (dispositivo e IP, ou "Agendador").
+- **Backup** diário às 02:30 (`BACKUP_CRON`): cópia consistente do banco, verificada, mais os PDFs (`storage/documentos`), retenção de 14 dias (mantém sempre os 3 últimos; PDFs nunca são apagados do backup).
+  Manual: `npm run dispositivos -- backup`. Defina `BACKUP_DIR` para **outro disco ou pasta de rede**.
+- Rode o PM2 com um usuário Windows comum (não administrador), com acesso apenas à pasta do app.
+

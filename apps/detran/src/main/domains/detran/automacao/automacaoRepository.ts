@@ -15,6 +15,7 @@ export interface ExecucaoResumo {
   mensagem: string | null
   iniciadaEm: string
   finalizadaEm: string | null
+  executadoPor: string | null
 }
 
 export const automacaoRepository = {
@@ -51,10 +52,12 @@ export const automacaoRepository = {
     return row?.processados ?? 0
   },
 
-  iniciarExecucao(origem: OrigemExecucao, totalVeiculos: number): number {
+  iniciarExecucao(origem: OrigemExecucao, totalVeiculos: number, executadoPor?: string): number {
     const r = db
-      .prepare(`INSERT INTO automacao_execucoes (origem, status, total_veiculos) VALUES (?, 'EXECUTANDO', ?)`)
-      .run(origem, totalVeiculos)
+      .prepare(
+        `INSERT INTO automacao_execucoes (origem, status, total_veiculos, executado_por) VALUES (?, 'EXECUTANDO', ?, ?)`
+      )
+      .run(origem, totalVeiculos, (executadoPor ?? '').slice(0, 120) || null)
     return Number(r.lastInsertRowid)
   },
 
@@ -82,7 +85,7 @@ export const automacaoRepository = {
   listarExecucoes(limite = 10): ExecucaoResumo[] {
     const rows = db
       .prepare(
-        `SELECT id, origem, status, total_veiculos, com_erro, email_enviado, mensagem, iniciada_em, finalizada_em
+        `SELECT id, origem, status, total_veiculos, com_erro, email_enviado, mensagem, iniciada_em, finalizada_em, executado_por
          FROM automacao_execucoes ORDER BY id DESC LIMIT ?`
       )
       .all(limite) as any[]
@@ -96,6 +99,7 @@ export const automacaoRepository = {
       mensagem: r.mensagem,
       iniciadaEm: r.iniciada_em,
       finalizadaEm: r.finalizada_em,
+      executadoPor: r.executado_por ?? null,
     }))
   },
 }

@@ -10,6 +10,7 @@ import { NextFunction, Request, Response } from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { estaDentroDe, STORAGE_DIR } from '../../../seguranca/caminhoSeguro'
 
 import { AppError } from '../../../shared/errors/AppError'
 import { sendResponse } from '../../../shared/utils/response'
@@ -167,7 +168,7 @@ export function baixarPdfDetran(req: Request, res: Response) {
 
   const registro = detranRepository.buscarPorId(id)
 
-  if (!registro?.caminho_pdf || !fs.existsSync(registro.caminho_pdf)) {
+  if (!registro?.caminho_pdf || !estaDentroDe(STORAGE_DIR, registro.caminho_pdf) || !fs.existsSync(registro.caminho_pdf)) {
     throw new AppError(
       'Documento PDF não encontrado ou arquivo indisponível.',
       404,
@@ -293,7 +294,7 @@ export function baixarPdfMultaDetran(req: Request, res: Response) {
 
   const multa = detranRepository.buscarMultaPorId(id)
 
-  if (!multa?.caminho_pdf || !fs.existsSync(multa.caminho_pdf)) {
+  if (!multa?.caminho_pdf || !estaDentroDe(STORAGE_DIR, multa.caminho_pdf) || !fs.existsSync(multa.caminho_pdf)) {
     throw new AppError(
       'Boleto não encontrado ou indisponível.',
       404,

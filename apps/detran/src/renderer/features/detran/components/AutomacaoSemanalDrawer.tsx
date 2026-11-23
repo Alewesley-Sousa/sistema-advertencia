@@ -240,6 +240,9 @@ export function AutomacaoSemanalDrawer({ aberto, onFechar }: { aberto: boolean; 
                   <div className="text-[11.5px] text-slate-500 dark:text-petrol-300/80 mt-0.5">
                     {x.totalVeiculos} veículo(s) · {x.comErro} com erro · e-mail {x.emailEnviado ? 'enviado' : 'não enviado'}
                   </div>
+                  {x.executadoPor && (
+                    <div className="text-[11.5px] text-slate-500 dark:text-petrol-300/80 mt-0.5">Executado por: {x.executadoPor}</div>
+                  )}
                   {x.mensagem && <div className="text-[11.5px] mt-0.5">{x.mensagem}</div>}
                 </li>
               ))}

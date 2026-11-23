@@ -6,6 +6,7 @@
 import { NextFunction, Request, Response } from 'express'
 
 import { sendResponse } from '../../../shared/utils/response'
+import { descreverExecutor } from '../../../seguranca/middlewares'
 import { automacaoRepository } from '../automacao/automacaoRepository'
 import { ErroCofre } from '../automacao/cofre'
 import { apagarVeiculos, estadoCofre, importarVeiculos } from '../automacao/veiculosCofreService'
@@ -55,6 +56,7 @@ export function apagarVeiculosAutomacao(_req: Request, res: Response, next: Next
 }
 
 export function executarAutomacaoAgora(_req: Request, res: Response) {
+  const executor = descreverExecutor(res)
   const config = configAutomacaoAtiva()
   if (!config) {
     return sendResponse.error(
@@ -68,13 +70,14 @@ export function executarAutomacaoAgora(_req: Request, res: Response) {
     return sendResponse.error(res, 'Já existe uma execução em andamento.', 409, 'AUTOMACAO_EM_ANDAMENTO')
   }
 
-  executarRotinaSemanal(config, 'MANUAL').catch((e: any) =>
+  executarRotinaSemanal(config, 'MANUAL', executor).catch((e: any) =>
     console.error('[Automação] Rodada manual falhou:', e?.message)
   )
   return sendResponse.success(res, { message: 'Execução iniciada. Acompanhe pelo histórico.' }, 202)
 }
 
 export function reenviarEmailAutomacao(_req: Request, res: Response) {
+  const executor = descreverExecutor(res)
   const config = configAutomacaoAtiva()
   if (!config) {
     return sendResponse.error(
@@ -88,6 +91,6 @@ export function reenviarEmailAutomacao(_req: Request, res: Response) {
     return sendResponse.error(res, 'Já existe uma execução em andamento.', 409, 'AUTOMACAO_EM_ANDAMENTO')
   }
 
-  reenviarRelatorio(config).catch((e: any) => console.error('[Automação] Reenvio falhou:', e?.message))
+  reenviarRelatorio(config, executor).catch((e: any) => console.error('[Automação] Reenvio falhou:', e?.message))
   return sendResponse.success(res, { message: 'Reenvio iniciado (sem nova consulta ao DETRAN).' }, 202)
 }

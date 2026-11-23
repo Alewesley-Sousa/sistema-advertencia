@@ -9,6 +9,8 @@
 //  - trava em memória impede duas rodadas simultâneas (agendada + manual);
 //  - nada sensível é logado: placas só mascaradas, e-mails mascarados, sem chassi.
 
+import os from 'node:os'
+
 import { detranRepository } from '../repositories/detranRepository'
 import { processarFilaLote } from '../services/detranService'
 import { gerarRelatorioPdf } from '../relatorio/relatorioPdfService'
@@ -200,7 +202,8 @@ async function gerarPdfEEnviar(
 async function executar(
   config: ConfigAutomacao,
   origem: OrigemExecucao,
-  reenvio: boolean
+  reenvio: boolean,
+  executor: string
 ): Promise<ResultadoRotina> {
   if (emExecucao) {
     throw new Error('Já existe uma execução da automação em andamento.')
@@ -234,12 +237,12 @@ async function executar(
       veiculos = carregarVeiculos()
     } catch (e) {
       const motivo = mensagemSegura(e)
-      execucaoId = automacaoRepository.iniciarExecucao(origem, 0)
+      execucaoId = automacaoRepository.iniciarExecucao(origem, 0, executor)
       const enviado = reenvio ? false : await enviarAlertaFalha(config, dataTexto, motivo)
       return encerrar({ status: 'FALHA', totalVeiculos: 0, comErro: 0, emailEnviado: enviado, mensagem: motivo })
     }
 
-    execucaoId = automacaoRepository.iniciarExecucao(origem, veiculos.length)
+    execucaoId = automacaoRepository.iniciarExecucao(origem, veiculos.length, executor)
     estado.total = veiculos.length
 
     /* 2. Consulta DETRAN-CE (pulada no reenvio) */
@@ -266,11 +269,19 @@ async function executar(
 }
 
 /** Rodada completa: consulta o DETRAN-CE, gera o PDF e envia. */
-export function executarRotinaSemanal(config: ConfigAutomacao, origem: OrigemExecucao): Promise<ResultadoRotina> {
-  return executar(config, origem, false)
+/** `executor`: quem disparou (dispositivo/IP). Sem valor, é o agendador interno deste servidor. */
+export function executarRotinaSemanal(
+  config: ConfigAutomacao,
+  origem: OrigemExecucao,
+  executor: string = `Agendador (${os.hostname()})`
+): Promise<ResultadoRotina> {
+  return executar(config, origem, false, executor)
 }
 
 /** Reenvia o relatório com os dados já consultados — NÃO acessa o DETRAN-CE. */
-export function reenviarRelatorio(config: ConfigAutomacao): Promise<ResultadoRotina> {
-  return executar(config, 'MANUAL', true)
+export function reenviarRelatorio(
+  config: ConfigAutomacao,
+  executor: string = `Servidor (${os.hostname()})`
+): Promise<ResultadoRotina> {
+  return executar(config, 'MANUAL', true, executor)
 }

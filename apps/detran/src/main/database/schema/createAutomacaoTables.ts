@@ -28,4 +28,10 @@ export function createAutomacaoTables() {
       finalizada_em TEXT
     );
   `)
+
+  // Quem executou (dispositivo/IP ou "Agendador"). Migração para bancos que já existiam.
+  const cols = db.prepare(`PRAGMA table_info(automacao_execucoes)`).all() as Array<{ name: string }>
+  if (!cols.some((c) => c.name === 'executado_por')) {
+    db.exec(`ALTER TABLE automacao_execucoes ADD COLUMN executado_por TEXT`)
+  }
 }

@@ -288,6 +288,7 @@ export interface ExecucaoAutomacao {
   mensagem: string | null
   iniciadaEm: string
   finalizadaEm: string | null
+  executadoPor: string | null
 }
 
 export interface StatusAutomacao {
