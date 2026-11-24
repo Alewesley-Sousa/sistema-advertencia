@@ -10,7 +10,9 @@ import {
 } from 'lucide-react'
 import { Drawer } from '../../../shared/ui/Drawer'
 import { DetranMultaStatusBadge } from './DetranMultaStatusBadge'
+import { showToast } from '../../../shared/ui/Toast'
 import {
+  marcarNovasMultas,
   obterUrlPdfMultaDetran,
   type MultaDetran,
 } from '../services/detran'
@@ -232,6 +234,32 @@ function MultaBloco({
   onToggle: () => void
 }) {
   const status = derivarStatusBoleto(multa)
+  const [aviso, setAviso] = useState<{ em: string | null; origem: string | null }>({
+    em: multa.notificadaEm ?? null,
+    origem: multa.notificadaOrigem ?? null,
+  })
+  const [salvandoAviso, setSalvandoAviso] = useState(false)
+  useEffect(() => {
+    setAviso({ em: multa.notificadaEm ?? null, origem: multa.notificadaOrigem ?? null })
+  }, [multa.id, multa.notificadaEm, multa.notificadaOrigem])
+
+  const alternarAviso = async () => {
+    if (multa.id == null) return
+    setSalvandoAviso(true)
+    try {
+      if (aviso.em) {
+        await marcarNovasMultas({ acao: 'DESMARCAR', ids: [multa.id] })
+        setAviso({ em: null, origem: null })
+      } else {
+        await marcarNovasMultas({ acao: 'MARCAR', ids: [multa.id] })
+        setAviso({ em: new Date().toISOString(), origem: 'MANUAL' })
+      }
+    } catch (err: any) {
+      showToast.error(err?.message || 'Não foi possível alterar o aviso desta multa.')
+    } finally {
+      setSalvandoAviso(false)
+    }
+  }
   const idConteudo = `multa-conteudo-${indice}`
 
   return (
@@ -307,6 +335,24 @@ function MultaBloco({
             <p className="text-[12.5px] text-slate-800 dark:text-petrol-100 leading-relaxed mb-4 mt-3 transition-colors">
               {multa.motivo}
             </p>
+
+            {multa.id != null && (
+              <div className="flex items-center justify-between gap-3 mb-3 text-[11.5px] text-slate-600 dark:text-petrol-200">
+                <span>
+                  {aviso.em
+                    ? `Avisada por e-mail${aviso.origem ? ` (${aviso.origem})` : ''}`
+                    : 'Multa nova: ainda não avisada por e-mail'}
+                </span>
+                <button
+                  type="button"
+                  disabled={salvandoAviso}
+                  onClick={alternarAviso}
+                  className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-petrol-700 font-semibold hover:bg-slate-50 dark:hover:bg-petrol-800 disabled:opacity-40 cursor-pointer transition-colors"
+                >
+                  {aviso.em ? 'Voltar para nova' : 'Marcar como avisada'}
+                </button>
+              </div>
+            )}
 
             {/* Caixa técnica */}
             <div className="rounded-md bg-slate-100/70 dark:bg-petrol-800/40 border border-slate-200 dark:border-petrol-800 px-4 py-3 mb-3 transition-colors">

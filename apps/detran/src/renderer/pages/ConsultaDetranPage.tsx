@@ -1,7 +1,7 @@
 // apps/detran/src/renderer/pages/ConsultaDetranPage.tsx
 
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, CheckSquare, Download, CalendarClock, FileBarChart2, FileText, Loader2, X } from 'lucide-react'
+import { ArrowLeft, CheckSquare, Download, BellRing, CalendarClock, FileBarChart2, FileText, Loader2, X } from 'lucide-react'
 
 import { PageHeader } from '../shared/layout/PageHeader'
 import { Pagination } from '../shared/ui/Pagination'
@@ -14,6 +14,7 @@ import { DetranTable, podeExportar  } from '../features/detran/components/Detran
 import { DetranMultasDrawer } from '../features/detran/components/DetranMultasDrawer'
 import { DetranProgressModal } from '../features/detran/components/DetranProgressModal'
 import { AutomacaoSemanalDrawer } from '../features/detran/components/AutomacaoSemanalDrawer'
+import { NovasMultasDrawer } from '../features/detran/components/NovasMultasDrawer'
 import {
   RelatorioPdfDrawer,
   type OpcaoSelecaoRelatorio,
@@ -42,6 +43,7 @@ export function ConsultaDetranPage() {
   const [mostrarRelatorios, setMostrarRelatorios] = useState(false)
   const [relatorioPdfAberto, setRelatorioPdfAberto] = useState(false)
   const [automacaoAberta, setAutomacaoAberta] = useState(false)
+  const [novasMultasAberto, setNovasMultasAberto] = useState(false)
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const ultimoIndexRef = useRef<number | null>(null)
@@ -253,6 +255,14 @@ const handleToggleTodos = (marcar: boolean) => {
           >
             <CalendarClock className="h-4 w-4" />
             Automação semanal
+          </button>
+          <button
+            type="button"
+            onClick={() => setNovasMultasAberto(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:border-petrol-400 hover:bg-slate-50 dark:border-petrol-700 dark:bg-petrol-900 dark:text-petrol-100 dark:hover:bg-petrol-800"
+          >
+            <BellRing className="h-4 w-4" />
+            Multas novas
           </button>
           <button
             type="button"
@@ -646,6 +656,7 @@ const handleToggleTodos = (marcar: boolean) => {
       />
 
       <AutomacaoSemanalDrawer aberto={automacaoAberta} onFechar={() => setAutomacaoAberta(false)} />
+      <NovasMultasDrawer aberto={novasMultasAberto} onFechar={() => setNovasMultasAberto(false)} />
 
       <RelatorioPdfDrawer
         aberto={relatorioPdfAberto}

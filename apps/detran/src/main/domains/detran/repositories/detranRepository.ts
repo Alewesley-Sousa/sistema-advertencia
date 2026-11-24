@@ -34,6 +34,9 @@ export interface MultaDetranRecord {
   caminhoPdf?: string | null
   erroEmissao?: string | null
   createdAt: string
+  /** Quando a multa foi avisada por e-mail (NULL = ainda não avisada) e por quê/quem. */
+  notificadaEm?: string | null
+  notificadaOrigem?: string | null
 }
 
 /** Resultado de `salvarMultas` */
@@ -844,7 +847,9 @@ export const detranRepository = {
            valor_pagar     AS valorPagar,
            caminho_pdf     AS caminhoPdf,
            erro_emissao    AS erroEmissao,
-           created_at      AS createdAt
+           created_at      AS createdAt,
+           notificada_em   AS notificadaEm,
+           notificada_origem AS notificadaOrigem
          FROM infracoes_detran_multas
          WHERE detran_consulta_id = ? AND ativa = 1
          ORDER BY data_infracao DESC, id DESC`

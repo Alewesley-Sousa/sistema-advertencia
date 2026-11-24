@@ -38,6 +38,8 @@ export interface MultaDetran {
   caminhoPdf?: string
   erroEmissao?: string
   jaBaixada?: boolean
+  notificadaEm?: string | null
+  notificadaOrigem?: string | null
 }
 
 export interface ItemVeiculoLote {
@@ -330,6 +332,69 @@ export async function executarAutomacaoAgora(): Promise<void> {
 /** Reenvia o e-mail com os dados já consultados (sem nova busca no DETRAN). */
 export async function reenviarEmailAutomacao(): Promise<void> {
   await api.post('/detran/automacao/reenviar')
+}
+
+/* ==========================================================================
+ * Multas novas (verificação diária)
+ * ========================================================================*/
+
+export interface ExecucaoNovasMultas {
+  id: number
+  origem: 'AGENDADA' | 'MANUAL'
+  status: 'EXECUTANDO' | 'CONCLUIDA' | 'PARCIAL' | 'FALHA'
+  totalVeiculos: number
+  comErro: number
+  novas: number
+  emailEnviado: boolean
+  mensagem: string | null
+  iniciadaEm: string
+  finalizadaEm: string | null
+  executadoPor: string | null
+}
+
+export interface StatusNovasMultas {
+  ativa: boolean
+  intervaloHoras: number | null
+  horario: string | null
+  timezone: string | null
+  proxima: string | null
+  emExecucao: boolean
+  pendentes: number
+  cofre: { existe: boolean; total: number; atualizadoEm: string | null }
+  execucoes: ExecucaoNovasMultas[]
+}
+
+export interface MultaPendente {
+  id: number
+  placa: string
+  modelo: string | null
+  contrato: string | null
+  ait: string
+  motivo: string
+  dataInfracao: string
+  dataVencimento: string | null
+  valorPagar: string | null
+}
+
+export async function buscarStatusNovasMultas(): Promise<StatusNovasMultas> {
+  const { data } = await api.get('/detran/novas-multas/status')
+  return data as StatusNovasMultas
+}
+
+export async function listarPendentesNovasMultas(): Promise<MultaPendente[]> {
+  const { data } = await api.get('/detran/novas-multas/pendentes')
+  return data as MultaPendente[]
+}
+
+export async function marcarNovasMultas(
+  corpo: { acao: 'MARCAR'; ids: number[] } | { acao: 'MARCAR'; todasPendentes: true } | { acao: 'DESMARCAR'; ids: number[] }
+): Promise<{ alteradas: number; pendentes: number }> {
+  const { data } = await api.post('/detran/novas-multas/marcar', corpo)
+  return data
+}
+
+export async function executarNovasMultasAgora(): Promise<void> {
+  await api.post('/detran/novas-multas/executar')
 }
 
 /* ==========================================================================

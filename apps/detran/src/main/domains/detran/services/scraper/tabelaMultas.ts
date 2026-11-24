@@ -13,9 +13,17 @@ export async function extrairMultas(
   const anoAtual =
     new Date().getFullYear()
 
+  // MULTAS_ANOS_ANTERIORES=1 também guarda multas do ano anterior (infrações de dezembro que o
+  // DETRAN só registra em janeiro). Vale para todo o app, para os totais ficarem consistentes.
+  const anosAnteriores = Math.min(
+    5,
+    Math.max(0, Math.floor(Number(process.env.MULTAS_ANOS_ANTERIORES ?? 0)) || 0)
+  )
+  const anoMinimo = anoAtual - anosAnteriores
+
   const multas =
     await page.evaluate(
-      (selTabela, anoAtual) => {
+      (selTabela, anoAtual, anoMinimo) => {
         const linhas =
           Array.from(
             document.querySelectorAll<HTMLTableRowElement>(
@@ -84,7 +92,8 @@ export async function extrairMultas(
 
           if (
             !matchAno ||
-            Number(matchAno[3]) !== anoAtual
+            Number(matchAno[3]) > anoAtual ||
+            Number(matchAno[3]) < anoMinimo
           ) {
             continue
           }
@@ -118,7 +127,8 @@ export async function extrairMultas(
         return resultado
       },
       CONFIG.seletores.tabelaMultas,
-      anoAtual
+      anoAtual,
+      anoMinimo
     )
 
   const mapa =

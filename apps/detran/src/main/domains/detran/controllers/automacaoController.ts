@@ -12,6 +12,7 @@ import { ErroCofre } from '../automacao/cofre'
 import { apagarVeiculos, estadoCofre, importarVeiculos } from '../automacao/veiculosCofreService'
 import { executarRotinaSemanal, progressoRotina, reenviarRelatorio, rotinaEmExecucao } from '../automacao/jobSemanal'
 import { automacaoAgendada, configAutomacaoAtiva } from '../automacao/scheduler'
+import { travaRotinas } from '../automacao/travaRotinas'
 
 export function statusAutomacao(_req: Request, res: Response, next: NextFunction) {
   try {
@@ -66,7 +67,7 @@ export function executarAutomacaoAgora(_req: Request, res: Response) {
       'AUTOMACAO_INATIVA'
     )
   }
-  if (rotinaEmExecucao()) {
+  if (rotinaEmExecucao() || travaRotinas.ocupadaPor()) {
     return sendResponse.error(res, 'Já existe uma execução em andamento.', 409, 'AUTOMACAO_EM_ANDAMENTO')
   }
 
@@ -87,7 +88,7 @@ export function reenviarEmailAutomacao(_req: Request, res: Response) {
       'AUTOMACAO_INATIVA'
     )
   }
-  if (rotinaEmExecucao()) {
+  if (rotinaEmExecucao() || travaRotinas.ocupadaPor()) {
     return sendResponse.error(res, 'Já existe uma execução em andamento.', 409, 'AUTOMACAO_EM_ANDAMENTO')
   }
 

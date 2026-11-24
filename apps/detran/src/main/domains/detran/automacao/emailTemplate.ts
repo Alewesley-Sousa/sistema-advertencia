@@ -23,12 +23,12 @@ export interface DadosEmailRelatorio {
 export const CID_LOGO = 'logo-force@detran'
 export const CID_GIF = 'banner-force@detran'
 
-const AZUL = '#1B426C'
-const CIANO = '#2CCDFC'
-const FUNDO = '#f4f7fa'
-const BORDA = '#dde5ee'
-const TEXTO = '#1f2a37'
-const MUTED = '#5b6b7c'
+export const AZUL = '#1B426C'
+export const CIANO = '#2CCDFC'
+export const FUNDO = '#f4f7fa'
+export const BORDA = '#dde5ee'
+export const TEXTO = '#1f2a37'
+export const MUTED = '#5b6b7c'
 
 export function escaparHtml(t: string): string {
   return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
@@ -42,7 +42,10 @@ function kpi(rotulo: string, valor: string): string {
     </table></td>`
 }
 
-function moldura(conteudo: string, d: { temLogo: boolean; temGif: boolean; preheader: string }): string {
+export function moldura(
+  conteudo: string,
+  d: { temLogo: boolean; temGif: boolean; preheader: string; titulo?: string }
+): string {
   const logo = d.temLogo
     ? `<img src="cid:${CID_LOGO}" width="56" alt="FORCE" style="display:block;border:0;height:auto;max-width:56px;">`
     : `<span style="font:800 24px Arial,Helvetica,sans-serif;letter-spacing:.14em;color:${AZUL};">FORCE</span><span style="font:600 11px Arial,Helvetica,sans-serif;letter-spacing:.08em;color:${MUTED};text-transform:uppercase;"> &nbsp;Logística Especializada</span>`
@@ -57,7 +60,7 @@ function moldura(conteudo: string, d: { temLogo: boolean; temGif: boolean; prehe
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
 <meta name="color-scheme" content="light">
-<title>Relatório semanal DETRAN-CE</title>
+<title>${escaparHtml(d.titulo ?? 'Relatório semanal DETRAN-CE')}</title>
 <style>
   @media only screen and (max-width: 620px) {
     .container { width: 100% !important; }

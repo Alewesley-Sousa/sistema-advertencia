@@ -21,6 +21,7 @@ import { automacaoRepository, type OrigemExecucao, type StatusExecucao } from '.
 import type { ConfigAutomacao } from './automacaoConfig'
 import { periodoDaSemana } from './periodoSemana'
 import { carregarVeiculos } from './veiculosCofreService'
+import { travaRotinas } from './travaRotinas'
 import { enviarEmail, lerImagensEmail } from './emailService'
 import { montarEmailFalha, montarEmailRelatorio, type DadosEmailRelatorio } from './emailTemplate'
 
@@ -205,7 +206,7 @@ async function executar(
   reenvio: boolean,
   executor: string
 ): Promise<ResultadoRotina> {
-  if (emExecucao) {
+  if (emExecucao || !travaRotinas.adquirir('SEMANAL')) {
     throw new Error('Já existe uma execução da automação em andamento.')
   }
   emExecucao = true
@@ -265,6 +266,7 @@ async function executar(
   } finally {
     emExecucao = false
     estado = null
+    travaRotinas.liberar('SEMANAL')
   }
 }
 

@@ -9,6 +9,7 @@ import { errorHandler } from './shared/errors/errorHandler'
 import { initDatabase } from './database/init'
 import { routes } from './routes'
 import { iniciarAutomacao } from './domains/detran/automacao/scheduler'
+import { iniciarNovasMultas } from './domains/detran/automacao/schedulerNovasMultas'
 import { db } from './database/db'
 import { criarServicoDispositivos } from './seguranca/dispositivos'
 import { cabecalhosSeguros, criarLimitador, criarMiddlewareDispositivo } from './seguranca/middlewares'
@@ -63,6 +64,7 @@ app.use(
     '/api/detran/exportar',
     '/api/detran/relatorio-pdf',
     '/api/detran/automacao',
+    '/api/detran/novas-multas',
   ],
   criarLimitador({
     janelaMs: 60_000,
@@ -108,6 +110,7 @@ app.use(errorHandler)
 app.listen(PORT, HOST, () => {
   console.log(`[DETRAN] Servidor rodando em http://${HOST}:${PORT}`)
   iniciarAutomacao()
+  iniciarNovasMultas()
   iniciarBackup()
   servicoDispositivos.limparPendentesAntigos(7)
 })

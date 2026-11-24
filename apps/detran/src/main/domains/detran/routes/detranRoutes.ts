@@ -22,6 +22,13 @@ import {
   statusAutomacao,
 } from '../controllers/automacaoController'
 
+import {
+  executarNovasMultasAgora,
+  listarPendentesNovasMultas,
+  marcarNovasMultas,
+  statusNovasMultas,
+} from '../controllers/novasMultasController'
+
 export const detranRoutes = Router()
 
 // Ajustado para 'consultar-veiculo'
@@ -50,3 +57,8 @@ detranRoutes.put('/automacao/veiculos', importarVeiculosAutomacao)
 detranRoutes.delete('/automacao/veiculos', apagarVeiculosAutomacao)
 detranRoutes.post('/automacao/executar', executarAutomacaoAgora)
 detranRoutes.post('/automacao/reenviar', reenviarEmailAutomacao)
+
+detranRoutes.get('/novas-multas/status', statusNovasMultas)
+detranRoutes.get('/novas-multas/pendentes', listarPendentesNovasMultas)
+detranRoutes.post('/novas-multas/marcar', marcarNovasMultas)
+detranRoutes.post('/novas-multas/executar', executarNovasMultasAgora)

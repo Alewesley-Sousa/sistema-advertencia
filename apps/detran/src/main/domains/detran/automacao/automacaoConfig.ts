@@ -85,8 +85,13 @@ function validarTimezone(tz: string): boolean {
  * Se a automação estiver desligada, devolve `{ ativa: false }` sem exigir SMTP.
  * Ligada: valida tudo e lança `ErroConfigAutomacao` listando os problemas.
  */
-export function carregarConfigAutomacao(env: NodeJS.ProcessEnv = process.env): ConfigAutomacao | { ativa: false } {
-  const ativa = ['1', 'true', 'sim', 'yes'].includes((env.DETRAN_AUTOMACAO_ATIVA ?? '').trim().toLowerCase())
+export function carregarConfigAutomacao(
+  env: NodeJS.ProcessEnv = process.env,
+  opcoes: { ignorarAtiva?: boolean } = {}
+): ConfigAutomacao | { ativa: false } {
+  const ativa =
+    opcoes.ignorarAtiva === true ||
+    ['1', 'true', 'sim', 'yes'].includes((env.DETRAN_AUTOMACAO_ATIVA ?? '').trim().toLowerCase())
   if (!ativa) return { ativa: false }
 
   const r = envSchema.safeParse(env)

@@ -106,7 +106,18 @@ export function createInfracoesDetranMultasTable() {
     )
   }
 
+  // Controle de aviso por e-mail (job de multas novas). NULL = ainda não avisada.
+  if (!nomesColunas.has('notificada_em')) {
+    db.exec('ALTER TABLE infracoes_detran_multas ADD COLUMN notificada_em TEXT')
+  }
+  if (!nomesColunas.has('notificada_origem')) {
+    db.exec('ALTER TABLE infracoes_detran_multas ADD COLUMN notificada_origem TEXT')
+  }
+
   db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_detran_multas_ativa_notificada
+      ON infracoes_detran_multas (ativa, notificada_em);
+
     CREATE INDEX IF NOT EXISTS idx_detran_multas_placa_chave
       ON infracoes_detran_multas (placa, ait, data_infracao);
 
